@@ -1,0 +1,1552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wallpaper Groups in Escher's Style</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap">
+<style>
+/* Layout: one-screen lecture demo in the style of the honeycomb page and the Escher page. The tilings and their symmetries are on the left, the tiling in the middle, and the readout (the group, the move, where the tracing is, and the sources) on the right. */
+:root {
+  --bg: #EFEEEC;
+  --surface: #FAFAF9;
+  --stage: #FCFBFA;
+  --stage-glow: #FFFFFF;
+  --ink: #1C1919;
+  --muted: #615B5A;
+  --rule: #D3CFCC;
+  --accent: #800000;
+  --accent-text: #800000;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #F4E7E5;
+  --trace: #8A0000;
+  --c0: #1F5FA8; --c1: #C25E00; --c2: #2B7A4B; --c3: #A8326E;
+  --mirror: #5B2E91; --glide: #1E7A50; --lat: #1C1919;
+  --font-math: "STIX Two Text", "STIX Two Math", "Times New Roman", Times, serif;
+  --font-ui: "Source Sans 3", "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131111; --surface: #1D1A19; --stage: #191615; --stage-glow: #221E1D;
+    --ink: #ECE8E5; --muted: #A59E9A; --rule: #37302E;
+    --accent: #8E1B1B; --accent-text: #E39A9A; --accent-ink: #FFFFFF; --accent-soft: #3A1E1E;
+    --trace: #FF5A4E;
+    --c0: #6FA8E8; --c1: #F0A04B; --c2: #5CC594; --c3: #E57BB0;
+    --mirror: #C3A0F0; --glide: #6FD6A2; --lat: #ECE8E5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131111; --surface: #1D1A19; --stage: #191615; --stage-glow: #221E1D;
+  --ink: #ECE8E5; --muted: #A59E9A; --rule: #37302E;
+  --accent: #8E1B1B; --accent-text: #E39A9A; --accent-ink: #FFFFFF; --accent-soft: #3A1E1E;
+  --trace: #FF5A4E;
+  --c0: #6FA8E8; --c1: #F0A04B; --c2: #5CC594; --c3: #E57BB0;
+  --mirror: #C3A0F0; --glide: #6FD6A2; --lat: #ECE8E5;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 16px; line-height: 1.4; }
+i, .math { font-family: var(--font-math); }
+sub, sup { font-size: 0.72em; line-height: 0; }
+a { color: var(--accent-text); }
+
+.app { height: 100%; max-width: 1680px; margin-inline: auto; padding-inline: 16px; padding-block: 12px 8px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Header */
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; }
+.title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 16px; min-width: 0; }
+h1 { margin: 0; font-family: var(--font-math); font-weight: 600; font-size: clamp(1.45rem, 2.2vw, 2rem); line-height: 1.1; color: var(--accent-text); text-wrap: balance; }
+.subtitle { margin: 0; font-family: var(--font-math); font-style: italic; font-size: 1.05rem; color: var(--muted); }
+.top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* Buttons */
+.btn, .seg button, .tog {
+  display: inline-flex; align-items: center; gap: 0.45em; padding: 0.5em 0.75em;
+  border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); color: var(--ink);
+  font: 600 0.92rem/1 var(--font-ui); cursor: pointer; white-space: nowrap;
+}
+.btn:hover, .seg button:hover, .tog:hover { border-color: var(--muted); }
+.btn:disabled { opacity: 0.45; cursor: default; border-color: var(--rule); }
+.btn:focus-visible, .seg button:focus-visible, .tog:focus-visible, .rot:focus-visible, .dw:focus-visible, input:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--accent-text); outline-offset: 2px;
+}
+.btn.primary, .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.seg { display: inline-flex; }
+.seg button { border-radius: 0; margin-left: -1px; }
+.seg button:first-child { border-radius: 8px 0 0 8px; margin-left: 0; }
+.seg button:last-child { border-radius: 0 8px 8px 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); position: relative; }
+.seg.small button { padding: 0.42em 0.6em; font-size: 0.85rem; }
+.tog { padding: 0.38em 0.6em; font-weight: 600; font-size: 0.85rem; color: var(--muted); }
+.tog::before { content: ""; width: 0.8em; height: 0.8em; border: 1.5px solid currentColor; border-radius: 3px; }
+.tog[aria-pressed="true"] { color: var(--ink); }
+.tog[aria-pressed="true"]::before { background: var(--accent-text); border-color: var(--accent-text); box-shadow: inset 0 0 0 2px var(--surface); }
+kbd { padding: 0.1em 0.36em; border: 1px solid currentColor; border-radius: 4px; font: 600 0.7rem/1.2 var(--font-ui); opacity: 0.6; }
+
+/* Three columns */
+.layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(280px, 340px); gap: 16px; }
+.catalog, .readout { min-height: 0; overflow-y: auto; min-width: 0; }
+
+/* Stage */
+.stage { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.shows { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.bar-label { font: 600 0.72rem var(--font-ui); letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.viewport { position: relative; flex: 1; min-height: 280px; border: 1px solid var(--rule); border-radius: 12px; background: radial-gradient(circle at 50% 45%, var(--stage-glow), var(--stage) 70%); overflow: hidden; }
+.viewport canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.viewport canvas.dragging { cursor: grabbing; }
+.hint { position: absolute; left: 12px; bottom: 8px; margin: 0; padding: 2px 6px; border-radius: 6px; background: color-mix(in srgb, var(--stage) 80%, transparent); font-size: 0.8rem; color: var(--muted); pointer-events: none; transition: opacity 400ms ease; }
+.hint.gone { opacity: 0; }
+.credit { position: absolute; right: 10px; top: 8px; margin: 0; padding: 2px 6px; border-radius: 6px; background: color-mix(in srgb, var(--stage) 85%, transparent); font-size: 0.74rem; color: var(--muted); pointer-events: none; }
+.playbar { flex-wrap: nowrap; }
+.playbar input[type="range"] { flex: 1; min-width: 60px; accent-color: var(--accent-text); }
+.live { min-width: 8.4em; font-family: var(--font-math); font-size: 1.02rem; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+#btn-play { min-width: 7.6em; justify-content: space-between; }
+
+/* Catalog */
+.catalog { display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
+.eyebrow { margin: 0; font: 600 0.75rem var(--font-ui); letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.drawings { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3px; }
+.dw { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 0.28em 0.1em 0.22em; border: 1px solid var(--rule); border-radius: 7px; background: var(--surface); color: var(--ink); cursor: pointer; min-width: 0; }
+.dw:hover { border-color: var(--muted); }
+.dw .g { font: 600 0.95rem/1.1 var(--font-math); font-style: italic; }
+.dw .n { font: 600 0.6rem/1.1 var(--font-ui); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dw[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.dw[aria-current="true"] .n { color: var(--accent-ink); opacity: 0.85; }
+.dfam { margin: 0; font-size: 0.74rem; color: var(--muted); }
+.block { display: flex; flex-direction: column; gap: 5px; padding-top: 7px; border-top: 1px solid var(--rule); }
+.block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.block-head h3 { margin: 0; font: 600 1.08rem var(--font-math); }
+.block-head .count { font: 600 0.8rem var(--font-ui); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.grp { display: flex; flex-direction: column; gap: 2px; }
+.grp-label { margin: 0; font-size: 0.82rem; font-weight: 600; color: var(--ink); }
+.chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 4px; }
+.rot {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.35em; min-width: 0; padding: 0.27em 0.3em;
+  border: 1px solid var(--rule); border-radius: 7px; background: var(--surface); color: var(--ink);
+  font: 400 0.95rem/1.1 var(--font-math); white-space: nowrap; text-align: center; cursor: pointer;
+  transition: background-color 160ms, color 160ms, box-shadow 160ms;
+}
+.rot:hover { border-color: var(--muted); }
+.rot.is-move { box-shadow: inset 0 0 0 2px var(--accent-text); border-color: var(--accent-text); }
+.rot.ghost { background: transparent; border-style: dashed; color: var(--muted); }
+.rot.ghost.is-move { color: var(--ink); }
+.rot .sym { flex: none; width: 0.85em; height: 0.85em; }
+.rot .cperm { flex: none; width: 0.42em; height: 0.42em; border-radius: 50%; background: var(--muted); opacity: 0.8; }
+.sum { margin: 0; padding-top: 6px; border-top: 1px solid var(--rule); font-size: 0.85rem; color: var(--muted); }
+.sum i, .sum .math { color: var(--ink); }
+
+/* Readout */
+.readout { display: flex; flex-direction: column; gap: 10px; }
+.card { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
+.mv-name { margin: 0; font: 600 1.14rem/1.25 var(--font-math); text-wrap: balance; }
+.mv-class { margin: 0; font-size: 0.86rem; color: var(--muted); }
+.mv-class i { color: var(--ink); }
+.dr-title { margin: 0; font: 600 1.08rem/1.2 var(--font-math); }
+.dr-meta { margin: 0; font: 400 0.82rem var(--font-ui); color: var(--muted); white-space: nowrap; }
+.gname { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 0; }
+.gname .big { font: 600 1.6rem/1 var(--font-math); font-style: italic; color: var(--accent-text); }
+#dr-detail { font-size: 0.84rem; line-height: 1.35; }
+.gname .orb { font-size: 0.84rem; color: var(--muted); }
+.facts { margin: 0; display: grid; border-top: 1px solid var(--rule); }
+.fact { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-block: 0.3em; border-bottom: 1px solid var(--rule); }
+.fact dt { font-size: 0.84rem; color: var(--muted); white-space: nowrap; }
+.fact dd { margin: 0; font-family: var(--font-math); font-size: 1.02rem; text-align: right; word-spacing: 0.05em; min-width: 0; overflow-wrap: anywhere; }
+.pill { margin: 0; align-self: flex-start; padding: 0.28em 0.75em; border-radius: 999px; font: 600 0.86rem var(--font-ui); background: var(--accent); color: var(--accent-ink); }
+.pill.rev { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.pill.transit { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--rule); }
+.pill.not { background: transparent; color: var(--ink); border: 1px dashed var(--muted); }
+.detail { margin: 0; display: flex; flex-direction: column; gap: 3px; font-size: 0.9rem; color: var(--muted); }
+.detail p { margin: 0; }
+.detail .math, .detail i { color: var(--ink); }
+.swatch { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 50%; border: 1px solid var(--muted); vertical-align: -0.08em; }
+.colors { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-family: var(--font-math); color: var(--ink); }
+.btnrow { display: flex; gap: 8px; padding-top: 2px; }
+.stalable { transition: opacity 200ms; }
+.stale { opacity: 0.35; }
+.key { margin: 0; font-size: 0.82rem; line-height: 1.45; color: var(--muted); }
+.key i { color: var(--ink); }
+.key svg { width: 0.9em; height: 0.9em; vertical-align: -0.1em; }
+details.card summary { cursor: pointer; font: 600 0.75rem var(--font-ui); letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.src { margin: 0; font-size: 0.82rem; line-height: 1.45; color: var(--muted); }
+.src p { margin: 0 0 0.45em; }
+.src cite { font-style: italic; color: var(--ink); }
+
+/* Footer */
+.keys { display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 0.8rem; color: var(--muted); }
+.keys kbd { opacity: 0.85; }
+
+@media (min-width: 1181px) and (max-height: 760px) {
+  .app { padding-block: 8px 6px; gap: 8px; }
+  .catalog { gap: 5px; }
+  .block { gap: 3px; padding-top: 5px; }
+  .grp { gap: 1px; }
+  .chips { row-gap: 2px; }
+  .rot { padding-block: 0.16em; }
+  .readout { gap: 8px; }
+  .card { gap: 4px; padding: 9px 12px; }
+  .fact { padding-block: 0.2em; }
+  .detail { gap: 2px; }
+}
+@media (min-width: 1181px) and (max-height: 680px) { .keys { display: none; } }
+@media (max-width: 1180px) {
+  html, body { height: auto; }
+  .app { height: auto; }
+  .layout { grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); }
+  .viewport { flex: none; height: min(72vh, 640px); }
+  .catalog { grid-column: 1 / -1; order: 3; overflow: visible; }
+  .readout { overflow: visible; }
+}
+@media (max-width: 760px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .viewport { height: auto; aspect-ratio: 1; max-height: 78vh; }
+  .playbar { flex-wrap: wrap; }
+  .playbar input[type="range"] { flex-basis: 100%; order: 3; }
+  .live { min-width: max-content; flex: 1; }
+  .keys { display: none; }
+  .btn kbd, .seg kbd { display: none; }
+  .drawings { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); }
+}
+@media (max-width: 480px) {
+  .app { padding-inline: 10px; }
+  .top-actions { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hint, .rot, .stalable { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="title">
+      <h1 id="h1">Wallpaper groups in Escher’s style</h1>
+      <p class="subtitle" id="subtitle"></p>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="btn-prev" type="button" title="Previous drawing (←)">← Prev</button>
+      <button class="btn" id="btn-next" type="button" title="Next drawing (→)">Next →</button>
+      <button class="btn" id="btn-tour" type="button" aria-pressed="false"><span id="tour-label">Play all</span> <kbd>A</kbd></button>
+      <button class="btn" id="btn-full" type="button">Full screen <kbd>F</kbd></button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <nav class="catalog" id="catalog" aria-label="Drawings and symmetries">
+      <p class="eyebrow">Tilings, by wallpaper group</p>
+      <div class="drawings" id="drawings" role="group" aria-label="Drawings"></div>
+      <p class="dfam" id="dfam"></p>
+      <div id="moves"></div>
+      <p class="sum" id="sum"></p>
+      <p class="key" id="key"></p>
+    </nav>
+
+    <section class="stage" aria-label="The drawing">
+      <div class="bar">
+        <div class="shows" role="group" aria-label="Show">
+          <span class="bar-label">Show</span>
+          <button class="tog" type="button" id="show-lattice" data-show="lattice" aria-pressed="true" title="The lattice of translations and one cell spanned by a₁ and a₂ (L)">Lattice</button>
+          <button class="tog" type="button" id="show-centers" data-show="centers" aria-pressed="true" title="Centers of rotation: the shape gives the order (lens 2, triangle 3, square 4, hexagon 6) and the color the class (C)">Centers</button>
+          <button class="tog" type="button" id="show-mirrors" data-show="mirrors" aria-pressed="true" title="Mirror lines (M)">Mirrors</button>
+          <button class="tog" type="button" id="show-glides" data-show="glides" aria-pressed="false" title="Axes of glide reflections that are not mirror lines (G)">Glides</button>
+        </div>
+        <div class="seg small" role="group" aria-label="Tracing">
+          <button type="button" data-trace="outline" aria-pressed="true" title="The tracing is a copy of the outlines of the tiles (T)">Outline</button>
+          <button type="button" data-trace="copy" aria-pressed="false" title="The tracing is a transparent copy of the colored tiles (T)">Copy</button>
+          <button type="button" data-trace="off" aria-pressed="false" title="Hide the tracing: only its flag and its edge move (T)">Off</button>
+        </div>
+        <div class="seg small" role="group" aria-label="Speed">
+          <button type="button" data-speed="slow" aria-pressed="false">Slow</button>
+          <button type="button" data-speed="normal" aria-pressed="true">Normal</button>
+          <button type="button" data-speed="fast" aria-pressed="false">Fast</button>
+        </div>
+      </div>
+      <div class="viewport" id="viewport">
+        <canvas id="cv" role="img" aria-label="A tiling of the plane, with a tracing of it that the symmetries move. Drag to move the view."></canvas>
+        <p class="hint" id="hint">Drag to move the view, scroll to zoom. Double-click to reset it.</p>
+        <p class="credit" id="credit"></p>
+      </div>
+      <div class="bar playbar">
+        <button class="btn primary" id="btn-play" type="button"><span id="play-label">Play</span> <kbd>Space</kbd></button>
+        <input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="How far this move has gone">
+        <output class="live" id="mv-live" for="scrub"></output>
+        <button class="btn" id="btn-undo" type="button">Undo <kbd>Z</kbd></button>
+        <button class="btn" id="btn-reset" type="button">Reset <kbd>R</kbd></button>
+        <div class="seg small" role="group" aria-label="Zoom">
+          <button type="button" id="zoom-out" aria-label="Zoom out" title="Zoom out (−)">−</button>
+          <button type="button" id="zoom-in" aria-label="Zoom in" title="Zoom in (+)">+</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="readout" aria-label="Readout">
+      <section class="card" id="dr-card">
+        <h2 class="dr-title"><span id="dr-title"></span><span class="dr-meta" id="dr-meta"></span></h2>
+        <p class="gname"><span class="big" id="dr-group"></span><span class="orb" id="dr-orb"></span></p>
+        <dl class="facts">
+          <div class="fact"><dt>Lattice, point group</dt><dd id="dr-lat"></dd></div>
+          <div class="fact" id="dr-cg-row"><dt>Keeping the colors</dt><dd id="dr-cg"></dd></div>
+        </dl>
+        <div class="detail" id="dr-detail"></div>
+      </section>
+      <section class="card" aria-live="polite">
+        <p class="eyebrow" id="mv-eyebrow">This move</p>
+        <h2 class="mv-name" id="mv-name"></h2>
+        <p class="mv-class" id="mv-class"></p>
+        <dl class="facts" id="mv-facts">
+          <div class="fact"><dt>Map</dt><dd id="mv-formula"></dd></div>
+          <div class="fact"><dt id="mv-fixlabel">Fixes</dt><dd id="mv-fix"></dd></div>
+          <div class="fact" id="mv-colors-row"><dt>Colors</dt><dd id="mv-colors"></dd></div>
+        </dl>
+      </section>
+      <section class="card">
+        <p class="eyebrow" id="pos-eyebrow">Where the tracing is now</p>
+        <p class="pill" id="pos-pill"></p>
+        <div class="stalable" id="pos-body">
+          <dl class="facts">
+            <div class="fact"><dt><i>g</i>(<i>x</i>, <i>y</i>)</dt><dd id="pos-formula"></dd></div>
+            <div class="fact" id="pos-colors-row"><dt>Colors</dt><dd id="pos-colors"></dd></div>
+          </dl>
+        </div>
+      </section>
+      <details class="card" id="sources">
+        <summary>Sources and credits</summary>
+        <div class="src" id="src"></div>
+      </details>
+    </aside>
+  </main>
+
+  <footer class="keys" id="keys"></footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+// ---------- wallpaper groups: exact data and geometry (no DOM) ----------
+// Inlined into the page by build.sh and loaded by tests/core_test.js under Node.
+//
+// An element of a plane group is stored in fractional coordinates with respect to the lattice basis a1, a2 and the
+// origin of the drawing: g = {m: [a, b, c, d], t: [t1, t2]} sends (x, y) to (a x + b y + t1, c x + d y + t2).
+// The general positions below are those of the International Tables for Crystallography, Vol. A (the standard
+// settings), so the origin is the usual one: a center of highest order where there is one.
+const WP = (() => {
+  "use strict";
+  const H = 0.5;
+  const I = [1, 0, 0, 1], N = [-1, 0, 0, -1];
+  const MX = [-1, 0, 0, 1], MY = [1, 0, 0, -1];                 // (−x, y), (x, −y)
+  const R4 = [0, -1, 1, 0], R4i = [0, 1, -1, 0];                // (−y, x), (y, −x)
+  const D1 = [0, 1, 1, 0], D2 = [0, -1, -1, 0];                 // (y, x), (−y, −x)
+  const R3 = [0, -1, 1, -1], R3i = [-1, 1, -1, 0];              // (−y, x − y), (−x + y, −x)
+  const R6 = [1, -1, 1, 0], R6i = [0, 1, -1, 1];                // (x − y, x), (y, −x + y)
+  const H1 = [0, -1, -1, 0], H2 = [-1, 1, 0, 1], H3 = [1, 0, 1, -1];   // p3m1 mirrors
+  const K1 = [0, 1, 1, 0], K2 = [1, -1, 0, -1], K3 = [-1, 0, -1, 1];   // p31m mirrors
+  const op = (m, t) => ({ m, t: t || [0, 0] });
+  const centered = (ops) => ops.concat(ops.map((o) => op(o.m, [o.t[0] + H, o.t[1] + H])));
+  // lat: the shape of the lattice; pg: the point group in the notation of the course (D_{2n} has order 2n).
+  const GROUPS = {
+    p1: { lat: "oblique", orb: "o", pg: "C₁", ops: [op(I)] },
+    p2: { lat: "oblique", orb: "2222", pg: "C₂", ops: [op(I), op(N)] },
+    pm: { lat: "rectangular", orb: "**", pg: "D₂", ops: [op(I), op(MX)] },
+    pg: { lat: "rectangular", orb: "××", pg: "D₂", ops: [op(I), op(MX, [0, H])] },
+    cm: { lat: "centered rectangular", orb: "*×", pg: "D₂", ops: centered([op(I), op(MX)]), center: true },
+    pmm: { lat: "rectangular", orb: "*2222", pg: "D₄", ops: [op(I), op(N), op(MX), op(MY)] },
+    pmg: { lat: "rectangular", orb: "22*", pg: "D₄", ops: [op(I), op(N), op(MX, [H, 0]), op(MY, [H, 0])] },
+    pgg: { lat: "rectangular", orb: "22×", pg: "D₄", ops: [op(I), op(N), op(MX, [H, H]), op(MY, [H, H])] },
+    cmm: { lat: "centered rectangular", orb: "2*22", pg: "D₄", ops: centered([op(I), op(N), op(MX), op(MY)]), center: true },
+    p4: { lat: "square", orb: "442", pg: "C₄", ops: [op(I), op(N), op(R4), op(R4i)] },
+    p4m: { lat: "square", orb: "*442", pg: "D₈", ops: [op(I), op(N), op(R4), op(R4i), op(MX), op(MY), op(D1), op(D2)] },
+    p4g: { lat: "square", orb: "4*2", pg: "D₈", ops: [op(I), op(N), op(R4), op(R4i), op(MX, [H, H]), op(MY, [H, H]), op(D1, [H, H]), op(D2, [H, H])] },
+    p3: { lat: "hexagonal", orb: "333", pg: "C₃", ops: [op(I), op(R3), op(R3i)] },
+    p3m1: { lat: "hexagonal", orb: "*333", pg: "D₆", ops: [op(I), op(R3), op(R3i), op(H1), op(H2), op(H3)] },
+    p31m: { lat: "hexagonal", orb: "3*3", pg: "D₆", ops: [op(I), op(R3), op(R3i), op(K1), op(K2), op(K3)] },
+    p6: { lat: "hexagonal", orb: "632", pg: "C₆", ops: [op(I), op(R3), op(R3i), op(N), op(R6), op(R6i)] },
+    p6m: { lat: "hexagonal", orb: "*632", pg: "D₁₂", ops: [op(I), op(R3), op(R3i), op(N), op(R6), op(R6i), op(H1), op(H2), op(H3), op(K1), op(K2), op(K3)] },
+  };
+
+  const EPS = 1e-6;
+  const near = (a, b, e) => Math.abs(a - b) < (e || EPS);
+  const frac1 = (x) => { const f = x - Math.floor(x + EPS); return near(f, 1) || near(f, 0) ? 0 : f; };
+  const mmul = (a, b) => [a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3], a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3]];
+  const mvec = (a, v) => [a[0] * v[0] + a[1] * v[1], a[2] * v[0] + a[3] * v[1]];
+  const mdet = (a) => a[0] * a[3] - a[1] * a[2];
+  const minv = (a) => { const d = mdet(a); return [a[3] / d, -a[1] / d, -a[2] / d, a[0] / d]; };
+  const meq = (a, b) => a.every((x, i) => near(x, b[i]));
+
+  // Composition g ∘ h, inverse, and the identity, in fractional coordinates.
+  const comp = (g, h) => ({ m: mmul(g.m, h.m), t: [g.m[0] * h.t[0] + g.m[1] * h.t[1] + g.t[0], g.m[2] * h.t[0] + g.m[3] * h.t[1] + g.t[1]] });
+  const inv = (g) => { const mi = minv(g.m).map((x) => Math.round(x)); const t = mvec(mi, g.t); return { m: mi, t: [-t[0] || 0, -t[1] || 0] }; };
+  const ID = { m: I.slice(), t: [0, 0] };
+  const apply = (g, p) => [g.m[0] * p[0] + g.m[1] * p[1] + g.t[0], g.m[2] * p[0] + g.m[3] * p[1] + g.t[1]];
+  const trans = (v) => ({ m: I.slice(), t: [v[0], v[1]] });
+
+  // g = T_(i, j) ∘ ops[k] with (i, j) integers, or null if g is not in the group.
+  function decompose(g, grp) {
+    for (let k = 0; k < grp.ops.length; k++) {
+      const o = grp.ops[k];
+      if (!meq(g.m, o.m)) continue;
+      const d0 = g.t[0] - o.t[0], d1 = g.t[1] - o.t[1];
+      if (near(d0, Math.round(d0), 1e-5) && near(d1, Math.round(d1), 1e-5)) return { k, i: Math.round(d0), j: Math.round(d1) };
+    }
+    return null;
+  }
+  const inGroup = (g, grp) => decompose(g, grp) !== null;
+
+  // ---------- world coordinates ----------
+  // The basis B = [a1 a2] (columns) in world coordinates, y up. A fractional element g acts on the world as
+  // x ↦ A x + b with A = B M B⁻¹ and b = B t.
+  function basisOf(dr) { return [dr.a1[0], dr.a2[0], dr.a1[1], dr.a2[1]]; }
+  function toWorld(g, B) {
+    const A = mmul(mmul(B, g.m), minv(B)), b = mvec(B, g.t);
+    return { A, b };
+  }
+  const fracOf = (B, p) => mvec(minv(B), p);
+  const worldOf = (B, f) => mvec(B, f);
+
+  // What kind of isometry x ↦ A x + b of the world is: identity, translation (vec), rotation (center c, angle in
+  // (−π, π]), reflection (axis through q, unit direction u), or glide reflection (axis through q, direction u, glide v).
+  function classifyWorld(A, b) {
+    const det = mdet(A);
+    if (det > 0) {
+      const ang = Math.atan2(A[2], A[0]);
+      if (Math.abs(ang) < 1e-7) return Math.hypot(b[0], b[1]) < 1e-7 ? { kind: "id" } : { kind: "trans", vec: b.slice() };
+      const M = [1 - A[0], -A[1], -A[2], 1 - A[3]];
+      return { kind: "rot", c: mvec(minv(M), b), ang };
+    }
+    // A = reflection across the line at angle θ: A = [cos 2θ, sin 2θ; sin 2θ, −cos 2θ].
+    const th = Math.atan2(A[2], A[0]) / 2, u = [Math.cos(th), Math.sin(th)];
+    const s = b[0] * u[0] + b[1] * u[1], v = [s * u[0], s * u[1]];
+    const q = [(b[0] - v[0]) / 2, (b[1] - v[1]) / 2];
+    if (Math.abs(s) < 1e-7) return { kind: "refl", q, u };
+    return { kind: "glide", q, u, v };
+  }
+  const classify = (g, B) => { const w = toWorld(g, B); return classifyWorld(w.A, w.b); };
+
+  // The element of the world group that is the rotation by ang about the world point c, in fractional coordinates
+  // (it need not be in the group: callers check with inGroup).
+  function fracRot(B, c, ang) {
+    const co = Math.cos(ang), si = Math.sin(ang), A = [co, -si, si, co];
+    const m = mmul(mmul(minv(B), A), B).map((x) => (near(x, Math.round(x), 1e-6) ? Math.round(x) : x));
+    const cf = fracOf(B, c), mc = mvec(m, cf);
+    return { m, t: [cf[0] - mc[0], cf[1] - mc[1]] };
+  }
+  // Reflection (or glide by the world vector v) in the line through world point q with direction u.
+  function fracRefl(B, q, u, v) {
+    const c2 = u[0] * u[0] - u[1] * u[1], s2 = 2 * u[0] * u[1], A = [c2, s2, s2, -c2];
+    const m = mmul(mmul(minv(B), A), B).map((x) => (near(x, Math.round(x), 1e-6) ? Math.round(x) : x));
+    const qf = fracOf(B, q), mq = mvec(m, qf), vf = v ? fracOf(B, v) : [0, 0];
+    return { m, t: [qf[0] - mq[0] + vf[0], qf[1] - mq[1] + vf[1]] };
+  }
+  const fracTrans = (B, v) => trans(fracOf(B, v));
+
+  // ---------- symmetry elements ----------
+  // Orbit class of a point (fractional coordinates) or of a line, under the group modulo the lattice.
+  const rkey = (x) => (Math.round(frac1(x) * 1e4) / 1e4).toFixed(4);
+  function pointClass(grp, c) {
+    let best = null;
+    for (const o of grp.ops) {
+      const p = apply(o, c), key = rkey(p[0]) + "," + rkey(p[1]);
+      if (best === null || key < best) best = key;
+    }
+    return best;
+  }
+  // A line through the fractional point q with fractional direction d. Symmetry axes point along lattice vectors,
+  // so d is a multiple of a primitive integer vector (p, r); modulo the lattice, the line is determined by (p, r) and
+  // det((p, r), q) mod 1.
+  function primDir(d) {
+    let best = null;
+    for (let den = 1; den <= 12 && !best; den++) {
+      const s = Math.max(Math.abs(d[0]), Math.abs(d[1]));
+      const x = d[0] / s * den, y = d[1] / s * den;
+      if (near(x, Math.round(x), 1e-5) && near(y, Math.round(y), 1e-5)) best = [Math.round(x), Math.round(y)];
+    }
+    if (!best) return null;
+    let [p, r] = best;
+    const g = gcd(p, r); p /= g; r /= g;
+    if (p < 0 || (p === 0 && r < 0)) { p = -p; r = -r; }
+    return [p || 0, r || 0];
+  }
+  function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a || 1; }
+  function lineKey(q, d) {
+    const pd = primDir(d);
+    if (!pd) return null;
+    return pd[0] + "/" + pd[1] + "@" + rkey(pd[0] * q[1] - pd[1] * q[0]);
+  }
+  function lineClass(grp, q, d) {
+    let best = null;
+    for (const o of grp.ops) {
+      const q2 = apply(o, q), d2 = mvec(o.m, d), key = lineKey(q2, d2);
+      if (key !== null && (best === null || key < best)) best = key;
+    }
+    return best;
+  }
+
+  // All rotation centers, mirror lines and glide axes meeting the fractional box [f0, f1] (with integer margin R).
+  // centers: {c (frac), n (order), cls}; lines: {q, d (frac), mirror, glide (shortest glide vector, frac), cls}.
+  function elements(grp, B, f0, f1) {
+    const centers = new Map(), lines = new Map();
+    const i0 = Math.floor(f0[0]) - 2, i1 = Math.ceil(f1[0]) + 2, j0 = Math.floor(f0[1]) - 2, j1 = Math.ceil(f1[1]) + 2;
+    for (const o of grp.ops) {
+      for (let i = i0; i <= i1; i++) {
+        for (let j = j0; j <= j1; j++) {
+          const g = { m: o.m, t: [o.t[0] + i, o.t[1] + j] };
+          const k = classify(g, B);
+          if (k.kind === "rot") {
+            const cf = fracOf(B, k.c), n = Math.round(2 * Math.PI / Math.abs(k.ang));
+            if (cf[0] < f0[0] - 0.5 || cf[0] > f1[0] + 0.5 || cf[1] < f0[1] - 0.5 || cf[1] > f1[1] + 0.5) continue;
+            const key = cf.map((x) => x.toFixed(4)).join(",");
+            const prev = centers.get(key);
+            if (!prev || prev.n < n) centers.set(key, { c: cf, n, cls: pointClass(grp, cf) });
+          } else if (k.kind === "refl" || k.kind === "glide") {
+            const qf = fracOf(B, k.q), df = fracOf(B, k.u);
+            const pd = primDir(df);
+            const key = lineKey(qf, df) + "#" + Math.round((pd[0] * qf[1] - pd[1] * qf[0]) * 1e4);
+            const v = k.kind === "glide" ? fracOf(B, k.v) : [0, 0];
+            const len = Math.hypot(...mvec(B, v));
+            const prev = lines.get(key);
+            // the shortest glide vector; of two opposite ones, the one pointing along the primitive direction
+            const fwd = v[0] * pd[0] + v[1] * pd[1] > 1e-9;
+            if (!prev || len < prev.len - 1e-6 || (Math.abs(len - prev.len) < 1e-6 && fwd && !prev.fwd))
+              lines.set(key, { q: qf, d: pd, len, v, fwd, mirror: len < 1e-6, cls: lineClass(grp, qf, pd) });
+          }
+        }
+      }
+    }
+    return { centers: [...centers.values()], lines: [...lines.values()] };
+  }
+
+  // The classes of centers (by order, then key) and of lines, each with a representative near the fractional point f.
+  function classes(grp, B, f) {
+    const el = elements(grp, B, [f[0] - 1.5, f[1] - 1.5], [f[0] + 1.5, f[1] + 1.5]);
+    const dist = (a) => Math.hypot(...mvec(B, [a[0] - f[0], a[1] - f[1]]));
+    const cc = new Map(), mc = new Map(), gc = new Map();
+    for (const c of el.centers) {
+      const p = cc.get(c.cls);
+      if (!p || dist(c.c) < dist(p.c) - 1e-9) cc.set(c.cls, c);
+    }
+    const lineDist = (l) => {
+      // distance from f to the line, in world units
+      const q = mvec(B, l.q), d = mvec(B, l.d), w = mvec(B, f), n = Math.hypot(d[0], d[1]);
+      return Math.abs((w[0] - q[0]) * d[1] - (w[1] - q[1]) * d[0]) / n;
+    };
+    for (const l of el.lines) {
+      const map = l.mirror ? mc : gc;
+      const p = map.get(l.cls);
+      if (!p || lineDist(l) < lineDist(p) - 1e-9) map.set(l.cls, l);
+    }
+    // a glide class whose lines are mirror lines is not a separate class
+    for (const k of [...gc.keys()]) if (mc.has(k)) gc.delete(k);
+    const byOrder = [...cc.values()].sort((a, b) => b.n - a.n || (a.cls < b.cls ? -1 : 1));
+    const sortL = (m) => [...m.values()].sort((a, b) => (a.cls < b.cls ? -1 : 1));
+    return { centers: byOrder, mirrors: sortL(mc), glides: sortL(gc) };
+  }
+
+  // ---------- colors ----------
+  // dr.colors = {N, table[k][i mod N][j mod N], palette, names}: the color of the motif containing h(p0), where
+  // h = T_(i, j) ∘ ops[k]. A symmetry g permutes the colors by σ_g(color of h) = color of g ∘ h.
+  const mod = (a, n) => ((a % n) + n) % n;
+  function colorOfElem(grp, col, h) {
+    const d = decompose(h, grp);
+    if (!d) return -1;
+    return col.table[d.k][mod(d.i, col.N)][mod(d.j, col.N)];
+  }
+  function colorReps(grp, col) {
+    const reps = [];
+    for (let k = 0; k < grp.ops.length; k++)
+      for (let i = 0; i < col.N; i++)
+        for (let j = 0; j < col.N; j++) {
+          const c = col.table[k][i][j];
+          if (c >= 0 && reps[c] === undefined) reps[c] = { m: grp.ops[k].m, t: [grp.ops[k].t[0] + i, grp.ops[k].t[1] + j] };
+        }
+    return reps;
+  }
+  function colorPerm(grp, col, g) {
+    return colorReps(grp, col).map((h) => colorOfElem(grp, col, comp(g, h)));
+  }
+
+  // ---------- formatting ----------
+  const MINUS = "−";
+  const VULGAR = { "1/2": "½", "1/3": "⅓", "2/3": "⅔", "1/4": "¼", "3/4": "¾", "1/6": "⅙", "5/6": "⅚" };
+  // a coefficient in front of a symbol (a₁, x, …): ½a₁ rather than 1/2a₁
+  function coefStr(x) { const f = fracStr(Math.abs(x)); return VULGAR[f] || (f.includes("/") ? "(" + f + ")" : f); }
+  function fracStr(x) {
+    for (const den of [1, 2, 3, 4, 6, 8, 12]) {
+      const n = Math.round(x * den);
+      if (near(x * den, n, 1e-5)) {
+        const g = gcd(n, den), nn = n / g, dd = den / g;
+        const s = (nn < 0 ? MINUS : "") + Math.abs(nn) + (dd === 1 ? "" : "/" + dd);
+        return s;
+      }
+    }
+    return (x < 0 ? MINUS : "") + Math.abs(x).toFixed(3);
+  }
+  // a x + b y + t as text, e.g. "−y + 1/2".
+  function linStr(a, b, t) {
+    const parts = [];
+    const term = (c, v) => {
+      if (near(c, 0)) return;
+      const ac = Math.abs(c), cs = near(ac, 1) ? "" : fracStr(ac);
+      parts.push([c < 0 ? -1 : 1, cs + v]);
+    };
+    term(a, "x"); term(b, "y");
+    if (!near(t, 0)) parts.push([t < 0 ? -1 : 1, fracStr(Math.abs(t))]);
+    if (!parts.length) return "0";
+    return parts.map(([s, p], i) => (i === 0 ? (s < 0 ? MINUS : "") + p : (s < 0 ? " " + MINUS + " " : " + ") + p)).join("");
+  }
+  const mapStr = (g) => `(${linStr(g.m[0], g.m[1], g.t[0])}, ${linStr(g.m[2], g.m[3], g.t[1])})`;
+  const ptStr = (p) => `(${fracStr(p[0])}, ${fracStr(p[1])})`;
+
+  return { GROUPS, ID, comp, inv, apply, trans, decompose, inGroup, basisOf, toWorld, fracOf, worldOf, classifyWorld, classify,
+    fracRot, fracRefl, fracTrans, elements, classes, pointClass, lineClass, primDir, colorOfElem, colorPerm, colorReps,
+    fracStr, coefStr, linStr, mapStr, ptStr, mmul, mvec, minv, mdet, near };
+})();
+if (typeof module !== "undefined") module.exports = WP;
+
+  const DATA = [{"id": "p1", "group": "p1", "a1": [1.0, 0.0], "a2": [0.27, 0.93], "tile": [[1.293513, 1.139633], [1.282885, 1.171186], [1.272114, 1.202246], [1.261063, 1.23234], [1.249604, 1.26103], [1.237625, 1.287929], [1.225033, 1.312714], [1.211754, 1.335136], [1.197741, 1.355028], [1.182969, 1.372307], [1.167438, 1.386971], [1.151171, 1.399099], [1.13421, 1.408838], [1.116616, 1.416394], [1.09846, 1.422018], [1.079826, 1.425992], [1.060798, 1.428612], [1.041463, 1.430174], [1.021902, 1.430956], [1.002187, 1.431207], [0.982378, 1.431136], [0.962523, 1.430906], [0.942652, 1.430622], [0.922782, 1.430338], [0.902911, 1.430053], [0.883025, 1.429717], [0.863098, 1.429241], [0.843095, 1.428502], [0.822976, 1.42736], [0.802696, 1.425666], [0.782214, 1.423277], [0.761494, 1.420067], [0.740506, 1.415937], [0.719234, 1.410825], [0.697671, 1.404711], [0.675824, 1.397622], [0.653717, 1.389632], [0.631381, 1.380859], [0.608865, 1.371461], [0.586221, 1.361627], [0.563513, 1.351569], [0.549475, 1.355555], [0.53551, 1.359448], [0.521692, 1.363155], [0.508095, 1.366579], [0.494793, 1.369627], [0.481863, 1.372202], [0.46938, 1.374208], [0.457418, 1.37555], [0.446049, 1.376136], [0.435341, 1.37588], [0.425355, 1.374704], [0.416146, 1.372539], [0.407755, 1.369331], [0.400212, 1.365042], [0.393531, 1.359656], [0.38771, 1.353174], [0.382726, 1.345625], [0.37854, 1.337061], [0.37509, 1.327558], [0.372298, 1.317218], [0.370066, 1.306163], [0.368283, 1.294537], [0.366825, 1.282497], [0.365558, 1.270214], [0.364344, 1.257862], [0.363047, 1.245617], [0.361532, 1.233649], [0.359677, 1.222115], [0.357371, 1.211155], [0.354523, 1.200885], [0.351065, 1.191394], [0.346949, 1.182739], [0.342157, 1.174946], [0.336698, 1.168003], [0.330606, 1.161866], [0.323943, 1.156458], [0.31679, 1.151672], [0.309253, 1.147376], [0.301451, 1.143418], [0.293513, 1.139633], [0.300295, 1.121682], [0.306475, 1.10373], [0.311479, 1.085779], [0.314791, 1.067827], [0.315976, 1.049875], [0.314701, 1.031924], [0.31075, 1.013972], [0.304039, 0.996021], [0.29461, 0.978069], [0.28264, 0.960117], [0.268421, 0.942166], [0.252356, 0.924214], [0.234929, 0.906262], [0.216693, 0.888311], [0.198234, 0.870359], [0.180151, 0.852408], [0.163029, 0.834456], [0.147406, 0.816504], [0.133762, 0.798553], [0.12249, 0.780601], [0.113888, 0.76265], [0.108148, 0.744698], [0.105352, 0.726746], [0.105477, 0.708795], [0.1084, 0.690843], [0.113912, 0.672891], [0.121733, 0.65494], [0.13153, 0.636988], [0.142942, 0.619037], [0.155596, 0.601085], [0.169131, 0.583133], [0.183213, 0.565182], [0.197554, 0.54723], [0.21192, 0.529279], [0.226143, 0.511327], [0.240117, 0.493375], [0.253803, 0.475424], [0.267217, 0.457472], [0.280421, 0.439521], [0.293513, 0.421569], [0.316221, 0.431627], [0.338865, 0.441461], [0.361381, 0.450859], [0.383717, 0.459632], [0.405824, 0.467622], [0.427671, 0.474711], [0.449234, 0.480825], [0.470506, 0.485937], [0.491494, 0.490067], [0.512214, 0.493277], [0.532696, 0.495666], [0.552976, 0.49736], [0.573095, 0.498502], [0.593098, 0.499241], [0.613025, 0.499717], [0.632911, 0.500053], [0.652782, 0.500338], [0.672652, 0.500622], [0.692523, 0.500906], [0.712378, 0.501136], [0.732187, 0.501207], [0.751902, 0.500956], [0.771463, 0.500174], [0.790798, 0.498612], [0.809826, 0.495992], [0.82846, 0.492018], [0.846616, 0.486394], [0.86421, 0.478838], [0.881171, 0.469099], [0.897438, 0.456971], [0.912969, 0.442307], [0.927741, 0.425028], [0.941754, 0.405136], [0.955033, 0.382714], [0.967625, 0.357929], [0.979604, 0.33103], [0.991063, 0.30234], [1.002114, 0.272246], [1.012885, 0.241186], [1.023513, 0.209633], [1.031451, 0.213418], [1.039253, 0.217376], [1.04679, 0.221672], [1.053943, 0.226458], [1.060606, 0.231866], [1.066698, 0.238003], [1.072157, 0.244946], [1.076949, 0.252739], [1.081065, 0.261394], [1.084523, 0.270885], [1.087371, 0.281155], [1.089677, 0.292115], [1.091532, 0.303649], [1.093047, 0.315617], [1.094344, 0.327862], [1.095558, 0.340214], [1.096825, 0.352497], [1.098283, 0.364537], [1.100066, 0.376163], [1.102298, 0.387218], [1.10509, 0.397558], [1.10854, 0.407061], [1.112726, 0.415625], [1.11771, 0.423174], [1.123531, 0.429656], [1.130212, 0.435042], [1.137755, 0.439331], [1.146146, 0.442539], [1.155355, 0.444704], [1.165341, 0.44588], [1.176049, 0.446136], [1.187418, 0.44555], [1.19938, 0.444208], [1.211863, 0.442202], [1.224793, 0.439627], [1.238095, 0.436579], [1.251692, 0.433155], [1.26551, 0.429448], [1.279475, 0.425555], [1.293513, 0.421569], [1.280421, 0.439521], [1.267217, 0.457472], [1.253803, 0.475424], [1.240117, 0.493375], [1.226143, 0.511327], [1.21192, 0.529279], [1.197554, 0.54723], [1.183213, 0.565182], [1.169131, 0.583133], [1.155596, 0.601085], [1.142942, 0.619037], [1.13153, 0.636988], [1.121733, 0.65494], [1.113912, 0.672891], [1.1084, 0.690843], [1.105477, 0.708795], [1.105352, 0.726746], [1.108148, 0.744698], [1.113888, 0.76265], [1.12249, 0.780601], [1.133762, 0.798553], [1.147406, 0.816504], [1.163029, 0.834456], [1.180151, 0.852408], [1.198234, 0.870359], [1.216693, 0.888311], [1.234929, 0.906262], [1.252356, 0.924214], [1.268421, 0.942166], [1.28264, 0.960117], [1.29461, 0.978069], [1.304039, 0.996021], [1.31075, 1.013972], [1.314701, 1.031924], [1.315976, 1.049875], [1.314791, 1.067827], [1.311479, 1.085779], [1.306475, 1.10373], [1.300295, 1.121682]], "deco": {"pole": [0.7261848610925953, 0.932435538572763], "r": 0.42325043768867204, "u": [0.38042558375259616, -0.9248115349769901], "eye": {"c": [0.8642681245742603, 0.7970189991198005], "r": 0.1269751313066016}, "pupil": {"c": [0.8953327665627672, 0.7548782315297128], "r": 0.05502255689952737}, "gill": [[0.9334188841782316, 1.0405652950778803], [0.6537279784185306, 1.1085776377041077], [0.486747779040708, 0.9025911594593543]], "spots": [{"c": [0.7359549066456095, 1.2202044910398113], "r": 0.04655754814575393}, {"c": [0.5536217046891911, 1.2184266750206765], "r": 0.03386003501509376}]}, "edges": [{"edge": 0, "partner": 3, "type": "trans"}, {"edge": 1, "partner": 4, "type": "trans"}, {"edge": 2, "partner": 5, "type": "trans"}], "area": 0.9299999999999926, "seed": 4, "escher": {"no": 105, "title": "Pegasus", "year": "1959", "url": "https://mcescher.com/wp-content/uploads/2019/06/e105.jpg"}}, {"id": "p2", "group": "p2", "a1": [1.0, 0.0], "a2": [0.27, 0.93], "tile": [[1.134202, 0.839909], [1.129137, 0.84461], [1.12404, 0.849205], [1.118884, 0.853596], [1.113645, 0.857697], [1.108303, 0.861449], [1.10285, 0.864814], [1.097283, 0.867788], [1.091609, 0.870394], [1.085845, 0.87269], [1.080014, 0.874756], [1.074148, 0.876699], [1.068281, 0.87864], [1.062451, 0.88071], [1.056697, 0.883037], [1.051052, 0.885744], [1.045547, 0.888932], [1.040205, 0.89268], [1.035037, 0.89703], [1.030047, 0.901989], [1.025222, 0.90752], [1.020541, 0.913545], [1.015967, 0.919942], [1.011456, 0.926553], [1.006952, 0.933187], [1.002392, 0.93963], [0.997709, 0.945651], [0.992837, 0.951019], [0.98771, 0.955507], [0.982267, 0.958909], [0.976458, 0.961048], [0.970242, 0.961787], [0.963593, 0.961036], [0.956501, 0.958758], [0.948973, 0.954977], [0.941031, 0.94977], [0.932715, 0.943275], [0.924079, 0.935679], [0.915191, 0.927214], [0.906129, 0.91815], [0.896978, 0.90878], [0.889992, 0.906027], [0.882988, 0.903165], [0.87595, 0.900107], [0.868873, 0.896808], [0.861758, 0.893284], [0.854618, 0.889614], [0.847479, 0.885947], [0.840376, 0.882493], [0.833351, 0.87951], [0.826452, 0.877278], [0.819726, 0.876084], [0.813217, 0.876185], [0.806959, 0.877789], [0.800974, 0.881028], [0.795268, 0.885942], [0.789833, 0.892467], [0.784638, 0.900437], [0.779641, 0.909589], [0.774785, 0.919578], [0.77, 0.93], [0.765215, 0.940422], [0.760359, 0.950411], [0.755362, 0.959563], [0.750167, 0.967533], [0.744732, 0.974058], [0.739026, 0.978972], [0.733041, 0.982211], [0.726783, 0.983815], [0.720274, 0.983916], [0.713548, 0.982722], [0.706649, 0.98049], [0.699624, 0.977507], [0.692521, 0.974053], [0.685382, 0.970386], [0.678242, 0.966716], [0.671127, 0.963192], [0.66405, 0.959893], [0.657012, 0.956835], [0.650008, 0.953973], [0.643022, 0.95122], [0.648403, 0.926813], [0.654584, 0.902394], [0.662252, 0.87795], [0.671882, 0.853473], [0.68366, 0.828961], [0.697436, 0.804416], [0.71271, 0.779847], [0.728665, 0.755266], [0.744223, 0.730692], [0.758141, 0.706144], [0.769127, 0.681646], [0.775957, 0.657215], [0.777604, 0.632871], [0.773343, 0.608623], [0.762837, 0.584479], [0.746186, 0.560436], [0.723938, 0.536486], [0.697064, 0.512611], [0.66689, 0.488791], [0.635, 0.465], [0.60311, 0.441209], [0.572936, 0.417389], [0.546062, 0.393514], [0.523814, 0.369564], [0.507163, 0.345521], [0.496657, 0.321377], [0.492396, 0.297129], [0.494043, 0.272785], [0.500873, 0.248354], [0.511859, 0.223856], [0.525777, 0.199308], [0.541335, 0.174734], [0.55729, 0.150153], [0.572564, 0.125584], [0.58634, 0.101039], [0.598118, 0.076527], [0.607748, 0.05205], [0.615416, 0.027606], [0.621597, 0.003187], [0.626978, -0.02122], [0.636129, -0.01185], [0.645191, -0.002786], [0.654079, 0.005679], [0.662715, 0.013275], [0.671031, 0.01977], [0.678973, 0.024977], [0.686501, 0.028758], [0.693593, 0.031036], [0.700242, 0.031787], [0.706458, 0.031048], [0.712267, 0.028909], [0.71771, 0.025507], [0.722837, 0.021019], [0.727709, 0.015651], [0.732392, 0.00963], [0.736952, 0.003187], [0.741456, -0.003447], [0.745967, -0.010058], [0.750541, -0.016455], [0.755222, -0.02248], [0.760047, -0.028011], [0.765037, -0.03297], [0.770205, -0.03732], [0.775547, -0.041068], [0.781052, -0.044256], [0.786697, -0.046963], [0.792451, -0.04929], [0.798281, -0.05136], [0.804148, -0.053301], [0.810014, -0.055244], [0.815845, -0.05731], [0.821609, -0.059606], [0.827283, -0.062212], [0.83285, -0.065186], [0.838303, -0.068551], [0.843645, -0.072303], [0.848884, -0.076404], [0.85404, -0.080795], [0.859137, -0.08539], [0.864202, -0.090091], [0.868573, -0.08194], [0.872823, -0.073607], [0.876852, -0.064941], [0.880599, -0.055849], [0.884055, -0.046321], [0.887276, -0.036435], [0.890376, -0.026369], [0.893529, -0.016383], [0.896956, -0.006808], [0.900899, 0.001986], [0.905612, 0.009622], [0.911324, 0.015752], [0.918225, 0.020089], [0.926441, 0.022443], [0.936021, 0.022742], [0.946924, 0.021047], [0.95902, 0.017553], [0.972096, 0.012583], [0.985867, 0.006564], [1.0, 0.0], [1.014133, -0.006564], [1.027904, -0.012583], [1.04098, -0.017553], [1.053076, -0.021047], [1.063979, -0.022742], [1.073559, -0.022443], [1.081775, -0.020089], [1.088676, -0.015752], [1.094388, -0.009622], [1.099101, -0.001986], [1.103044, 0.006808], [1.106471, 0.016383], [1.109624, 0.026369], [1.112724, 0.036435], [1.115945, 0.046321], [1.119401, 0.055849], [1.123148, 0.064941], [1.127177, 0.073607], [1.131427, 0.08194], [1.135798, 0.090091], [1.161644, 0.108892], [1.186253, 0.127689], [1.208478, 0.146482], [1.227342, 0.165268], [1.242103, 0.184045], [1.252303, 0.202812], [1.257784, 0.221569], [1.258685, 0.240317], [1.255413, 0.259055], [1.248587, 0.277786], [1.238975, 0.296512], [1.22741, 0.315232], [1.214717, 0.333951], [1.201637, 0.352669], [1.188767, 0.371387], [1.176517, 0.390106], [1.165092, 0.408827], [1.154499, 0.42755], [1.144567, 0.446275], [1.135, 0.465], [1.125433, 0.483725], [1.115501, 0.50245], [1.104908, 0.521173], [1.093483, 0.539894], [1.081233, 0.558613], [1.068363, 0.577331], [1.055283, 0.596049], [1.04259, 0.614768], [1.031025, 0.633488], [1.021413, 0.652214], [1.014587, 0.670945], [1.011315, 0.689683], [1.012216, 0.708431], [1.017697, 0.727188], [1.027897, 0.745955], [1.042658, 0.764732], [1.061522, 0.783518], [1.083747, 0.802311], [1.108356, 0.821108]], "deco": {"pole": [0.8714225163513097, 0.2954499361631212], "r": 0.27849593157132146, "u": [-0.22388082193407027, 0.9746165284716471], "eye": {"c": [0.796378746319934, 0.39822618448037234], "r": 0.08354877947139644}, "pupil": {"c": [0.7807539564114306, 0.4289268961009901], "r": 0.036204471104271795}, "gill": [[0.7252553053427485, 0.24758615532603015], [0.8994799704807767, 0.17330790405343777], [1.0300597069729673, 0.2890283693959085]], "spots": [{"c": [0.8340799665058833, 0.10970738713144465], "r": 0.030634552472845362}, {"c": [0.952626645404968, 0.09121906827419445], "r": 0.022279674525705718}]}, "edges": [{"edge": 0, "partner": 3, "type": "trans"}, {"edge": 1, "type": "half-turn"}, {"edge": 2, "type": "half-turn"}, {"edge": 4, "type": "half-turn"}, {"edge": 5, "type": "half-turn"}], "area": 0.4650000000000034, "seed": 1, "escher": {"no": 11, "title": "Seahorses", "year": "1937–38", "url": "https://mcescher.com/wp-content/uploads/2019/06/e11.jpg"}}, {"id": "pm", "group": "pm", "a1": [1.0, 0.0], "a2": [0.0, 0.84], "tile": [[1.0, 0.456132], [0.9875, 0.456749], [0.975, 0.457776], [0.9625, 0.459599], [0.95, 0.46256], [0.9375, 0.466941], [0.925, 0.472944], [0.9125, 0.480681], [0.9, 0.490167], [0.8875, 0.50132], [0.875, 0.513958], [0.8625, 0.527815], [0.85, 0.542548], [0.8375, 0.557754], [0.825, 0.572989], [0.8125, 0.58779], [0.8, 0.601697], [0.7875, 0.614273], [0.775, 0.625123], [0.7625, 0.633914], [0.75, 0.640388], [0.7375, 0.64437], [0.725, 0.645778], [0.7125, 0.644618], [0.7, 0.640985], [0.6875, 0.635053], [0.675, 0.627063], [0.6625, 0.617308], [0.65, 0.606116], [0.6375, 0.593832], [0.625, 0.580798], [0.6125, 0.567336], [0.6, 0.553736], [0.5875, 0.540235], [0.575, 0.527018], [0.5625, 0.514204], [0.55, 0.501848], [0.5375, 0.489943], [0.525, 0.478431], [0.5125, 0.467205], [0.5, 0.456132], [0.5, 0.435132], [0.5, 0.414132], [0.5, 0.393132], [0.5, 0.372132], [0.5, 0.351132], [0.5, 0.330132], [0.5, 0.309132], [0.5, 0.288132], [0.5, 0.267132], [0.5, 0.246132], [0.5, 0.225132], [0.5, 0.204132], [0.5, 0.183132], [0.5, 0.162132], [0.5, 0.141132], [0.5, 0.120132], [0.5, 0.099132], [0.5, 0.078132], [0.5, 0.057132], [0.5, 0.036132], [0.5, 0.015132], [0.5, -0.005868], [0.5, -0.026868], [0.5, -0.047868], [0.5, -0.068868], [0.5, -0.089868], [0.5, -0.110868], [0.5, -0.131868], [0.5, -0.152868], [0.5, -0.173868], [0.5, -0.194868], [0.5, -0.215868], [0.5, -0.236868], [0.5, -0.257868], [0.5, -0.278868], [0.5, -0.299868], [0.5, -0.320868], [0.5, -0.341868], [0.5, -0.362868], [0.5, -0.383868], [0.5125, -0.372795], [0.525, -0.361569], [0.5375, -0.350057], [0.55, -0.338152], [0.5625, -0.325796], [0.575, -0.312982], [0.5875, -0.299765], [0.6, -0.286264], [0.6125, -0.272664], [0.625, -0.259202], [0.6375, -0.246168], [0.65, -0.233884], [0.6625, -0.222692], [0.675, -0.212937], [0.6875, -0.204947], [0.7, -0.199015], [0.7125, -0.195382], [0.725, -0.194222], [0.7375, -0.19563], [0.75, -0.199612], [0.7625, -0.206086], [0.775, -0.214877], [0.7875, -0.225727], [0.8, -0.238303], [0.8125, -0.25221], [0.825, -0.267011], [0.8375, -0.282246], [0.85, -0.297452], [0.8625, -0.312185], [0.875, -0.326042], [0.8875, -0.33868], [0.9, -0.349833], [0.9125, -0.359319], [0.925, -0.367056], [0.9375, -0.373059], [0.95, -0.37744], [0.9625, -0.380401], [0.975, -0.382224], [0.9875, -0.383251], [1.0, -0.383868], [1.0, -0.362868], [1.0, -0.341868], [1.0, -0.320868], [1.0, -0.299868], [1.0, -0.278868], [1.0, -0.257868], [1.0, -0.236868], [1.0, -0.215868], [1.0, -0.194868], [1.0, -0.173868], [1.0, -0.152868], [1.0, -0.131868], [1.0, -0.110868], [1.0, -0.089868], [1.0, -0.068868], [1.0, -0.047868], [1.0, -0.026868], [1.0, -0.005868], [1.0, 0.015132], [1.0, 0.036132], [1.0, 0.057132], [1.0, 0.078132], [1.0, 0.099132], [1.0, 0.120132], [1.0, 0.141132], [1.0, 0.162132], [1.0, 0.183132], [1.0, 0.204132], [1.0, 0.225132], [1.0, 0.246132], [1.0, 0.267132], [1.0, 0.288132], [1.0, 0.309132], [1.0, 0.330132], [1.0, 0.351132], [1.0, 0.372132], [1.0, 0.393132], [1.0, 0.414132], [1.0, 0.435132]], "deco": {"pole": [0.7499999999844171, 0.06495169103772813], "r": 0.24999999998441713, "u": [-0.04300232887367109, 0.999074972017336], "eye": {"c": [0.7005263817149853, 0.16791945829381508], "r": 0.07499999999532514}, "pupil": {"c": [0.6917432495591926, 0.1975691899859345], "r": 0.032499999997974226}, "gill": [[0.6131647204514834, 0.04655043366852863], [0.7548377619824036, -0.04744424330721636], [0.8889853959609003, 0.03339919980917452]], "spots": [{"c": [0.6867301129225664, -0.09291509263627584], "r": 0.027499999998285885}, {"c": [0.7883577032729121, -0.12857785862737928], "r": 0.019999999998753373}]}, "edges": [{"edge": 0, "partner": 2, "type": "trans"}, {"edge": 1, "type": "mirror"}, {"edge": 3, "type": "mirror"}], "area": 0.4200000000000008, "seed": 3, "escher": null}, {"id": "pg", "group": "pg", "a1": [1.0, 0.0], "a2": [0.0, 0.84], "tile": [[0.045973, 0.899767], [0.036525, 0.898104], [0.027211, 0.89638], [0.01816, 0.894533], [0.009491, 0.892509], [0.001311, 0.89026], [-0.006294, 0.887745], [-0.013256, 0.884932], [-0.019529, 0.8818], [-0.02509, 0.87834], [-0.029939, 0.87455], [-0.034097, 0.87044], [-0.037605, 0.86603], [-0.040519, 0.861344], [-0.042906, 0.856415], [-0.044844, 0.851279], [-0.046413, 0.845972], [-0.047694, 0.840531], [-0.048763, 0.834993], [-0.049687, 0.829387], [-0.050524, 0.823741], [-0.051317, 0.818075], [-0.052095, 0.812403], [-0.052874, 0.80673], [-0.053652, 0.801057], [-0.054417, 0.795377], [-0.055143, 0.78968], [-0.055797, 0.78395], [-0.056342, 0.778169], [-0.056736, 0.772319], [-0.056942, 0.766381], [-0.056923, 0.760339], [-0.056655, 0.754182], [-0.056118, 0.747901], [-0.055309, 0.741494], [-0.054235, 0.734964], [-0.052915, 0.728321], [-0.051382, 0.721579], [-0.049678, 0.714758], [-0.047856, 0.707882], [-0.045973, 0.700978], [-0.05358, 0.695448], [-0.06111, 0.689918], [-0.068488, 0.684387], [-0.075635, 0.678857], [-0.082473, 0.673327], [-0.088923, 0.667797], [-0.094907, 0.662266], [-0.100348, 0.656736], [-0.105169, 0.651206], [-0.1093, 0.645675], [-0.112678, 0.640145], [-0.115245, 0.634615], [-0.116957, 0.629085], [-0.117785, 0.623554], [-0.117713, 0.618024], [-0.116743, 0.612494], [-0.114899, 0.606964], [-0.112224, 0.601433], [-0.108779, 0.595903], [-0.104648, 0.590373], [-0.099932, 0.584843], [-0.094748, 0.579312], [-0.089224, 0.573782], [-0.083502, 0.568252], [-0.077723, 0.562721], [-0.072032, 0.557191], [-0.066567, 0.551661], [-0.061458, 0.546131], [-0.05682, 0.5406], [-0.052746, 0.53507], [-0.049311, 0.52954], [-0.046562, 0.52401], [-0.044517, 0.518479], [-0.04317, 0.512949], [-0.042483, 0.507419], [-0.042393, 0.501889], [-0.042813, 0.496358], [-0.043634, 0.490828], [-0.044733, 0.485298], [-0.045973, 0.479767], [-0.036525, 0.478104], [-0.027211, 0.47638], [-0.01816, 0.474533], [-0.009491, 0.472509], [-0.001311, 0.47026], [0.006294, 0.467745], [0.013256, 0.464932], [0.019529, 0.4618], [0.02509, 0.45834], [0.029939, 0.45455], [0.034097, 0.45044], [0.037605, 0.44603], [0.040519, 0.441344], [0.042906, 0.436415], [0.044844, 0.431279], [0.046413, 0.425972], [0.047694, 0.420531], [0.048763, 0.414993], [0.049687, 0.409387], [0.050524, 0.403741], [0.051317, 0.398075], [0.052095, 0.392403], [0.052874, 0.38673], [0.053652, 0.381057], [0.054417, 0.375377], [0.055143, 0.36968], [0.055797, 0.36395], [0.056342, 0.358169], [0.056736, 0.352319], [0.056942, 0.346381], [0.056923, 0.340339], [0.056655, 0.334182], [0.056118, 0.327901], [0.055309, 0.321494], [0.054235, 0.314964], [0.052915, 0.308321], [0.051382, 0.301579], [0.049678, 0.294758], [0.047856, 0.287882], [0.045973, 0.280978], [0.066796, 0.294525], [0.087787, 0.30731], [0.109103, 0.318608], [0.130887, 0.327766], [0.153261, 0.334233], [0.176315, 0.33759], [0.20011, 0.337564], [0.22467, 0.334047], [0.249981, 0.327093], [0.275997, 0.316925], [0.302634, 0.303915], [0.329783, 0.288568], [0.357309, 0.271501], [0.385059, 0.253408], [0.41287, 0.235035], [0.440578, 0.217139], [0.468019, 0.200455], [0.495046, 0.185669], [0.521524, 0.173384], [0.547346, 0.164099], [0.572429, 0.158191], [0.596719, 0.155902], [0.620195, 0.157336], [0.642861, 0.162464], [0.664753, 0.171131], [0.685929, 0.183071], [0.706465, 0.19793], [0.726454, 0.215289], [0.745996, 0.23469], [0.765195, 0.255663], [0.784149, 0.277748], [0.802952, 0.300526], [0.821683, 0.323631], [0.840407, 0.346768], [0.859171, 0.369723], [0.878004, 0.392365], [0.896917, 0.414641], [0.915904, 0.436574], [0.93495, 0.458242], [0.954027, 0.479767], [0.955267, 0.485298], [0.956366, 0.490828], [0.957187, 0.496358], [0.957607, 0.501889], [0.957517, 0.507419], [0.95683, 0.512949], [0.955483, 0.518479], [0.953438, 0.52401], [0.950689, 0.52954], [0.947254, 0.53507], [0.94318, 0.5406], [0.938542, 0.546131], [0.933433, 0.551661], [0.927968, 0.557191], [0.922277, 0.562721], [0.916498, 0.568252], [0.910776, 0.573782], [0.905252, 0.579312], [0.900068, 0.584843], [0.895352, 0.590373], [0.891221, 0.595903], [0.887776, 0.601433], [0.885101, 0.606964], [0.883257, 0.612494], [0.882287, 0.618024], [0.882215, 0.623554], [0.883043, 0.629085], [0.884755, 0.634615], [0.887322, 0.640145], [0.8907, 0.645675], [0.894831, 0.651206], [0.899652, 0.656736], [0.905093, 0.662266], [0.911077, 0.667797], [0.917527, 0.673327], [0.924365, 0.678857], [0.931512, 0.684387], [0.93889, 0.689918], [0.94642, 0.695448], [0.954027, 0.700978], [0.933204, 0.714525], [0.912213, 0.72731], [0.890897, 0.738608], [0.869113, 0.747766], [0.846739, 0.754233], [0.823685, 0.75759], [0.79989, 0.757564], [0.77533, 0.754047], [0.750019, 0.747093], [0.724003, 0.736925], [0.697366, 0.723915], [0.670217, 0.708568], [0.642691, 0.691501], [0.614941, 0.673408], [0.58713, 0.655035], [0.559422, 0.637139], [0.531981, 0.620455], [0.504954, 0.605669], [0.478476, 0.593384], [0.452654, 0.584099], [0.427571, 0.578191], [0.403281, 0.575902], [0.379805, 0.577336], [0.357139, 0.582464], [0.335247, 0.591131], [0.314071, 0.603071], [0.293535, 0.61793], [0.273546, 0.635289], [0.254004, 0.65469], [0.234805, 0.675663], [0.215851, 0.697748], [0.197048, 0.720526], [0.178317, 0.743631], [0.159593, 0.766768], [0.140829, 0.789723], [0.121996, 0.812365], [0.103083, 0.834641], [0.084096, 0.856574], [0.06505, 0.878242]], "deco": {"pole": [0.5981420262553168, 0.40322696011253745], "r": 0.2228591289804034, "u": [-0.8084692572768374, 0.5885384099939773], "eye": {"c": [0.49885962103587544, 0.42588319042295364], "r": 0.06685773869412101}, "pupil": {"c": [0.4733038157750944, 0.4362172866791615], "r": 0.028971686767452442}, "gill": [[0.5350121273970011, 0.2975727872751167], [0.6792206657731841, 0.3442044392722913], [0.6973068760104624, 0.48264890146540435]], "spots": [{"c": [0.6731252499571141, 0.2714581112548585], "r": 0.02451450418784437}, {"c": [0.7544176736436858, 0.32254222786087533], "r": 0.01782873031843227}]}, "edges": [{"edge": 0, "partner": 2, "type": "glide"}, {"edge": 1, "partner": 4, "type": "trans"}, {"edge": 3, "partner": 5, "type": "glide"}], "area": 0.41999999999999815, "seed": 4, "escher": {"no": 67, "title": "Horsemen", "year": "1946", "url": "https://mcescher.com/wp-content/uploads/2019/06/e67.jpg"}}, {"id": "cm", "group": "cm", "a1": [1.0, 0.0], "a2": [0.0, 1.38], "tile": [[0.5, 1.258664], [0.5, 1.237318], [0.5, 1.215972], [0.5, 1.194625], [0.5, 1.173279], [0.5, 1.151933], [0.5, 1.130587], [0.5, 1.109241], [0.5, 1.087894], [0.5, 1.066548], [0.5, 1.045202], [0.5, 1.023856], [0.5, 1.00251], [0.5, 0.981163], [0.5, 0.959817], [0.5, 0.938471], [0.5, 0.917125], [0.5, 0.895779], [0.5, 0.874433], [0.5, 0.853086], [0.5, 0.83174], [0.5, 0.810394], [0.5, 0.789048], [0.5, 0.767702], [0.5, 0.746355], [0.5, 0.725009], [0.5, 0.703663], [0.5, 0.682317], [0.5, 0.660971], [0.5, 0.639624], [0.5, 0.618278], [0.5, 0.596932], [0.5, 0.575586], [0.5, 0.55424], [0.5, 0.532893], [0.5, 0.511547], [0.5, 0.490201], [0.5, 0.468855], [0.5, 0.447509], [0.5, 0.426163], [0.5, 0.404816], [0.512702, 0.408295], [0.525539, 0.411364], [0.538636, 0.413638], [0.552107, 0.414772], [0.566042, 0.414487], [0.580509, 0.412581], [0.595545, 0.40894], [0.611153, 0.40355], [0.627308, 0.396494], [0.64395, 0.387952], [0.66099, 0.378191], [0.678318, 0.367554], [0.695801, 0.356445], [0.713294, 0.345306], [0.730644, 0.334601], [0.747701, 0.32479], [0.764322, 0.31631], [0.780378, 0.309556], [0.795759, 0.304861], [0.81038, 0.302484], [0.824185, 0.302597], [0.837146, 0.305286], [0.849266, 0.310543], [0.860575, 0.318272], [0.871132, 0.3283], [0.881013, 0.340386], [0.890317, 0.354237], [0.899149, 0.369525], [0.907624, 0.385905], [0.915852, 0.403036], [0.923941, 0.420594], [0.931984, 0.43829], [0.94006, 0.455887], [0.948229, 0.4732], [0.95653, 0.490111], [0.964981, 0.506563], [0.97358, 0.522564], [0.982307, 0.538172], [0.991129, 0.553494], [1.0, 0.568664], [1.0, 0.581818], [1.0, 0.594972], [1.0, 0.608125], [1.0, 0.621279], [1.0, 0.634433], [1.0, 0.647587], [1.0, 0.660741], [1.0, 0.673894], [1.0, 0.687048], [1.0, 0.700202], [1.0, 0.713356], [1.0, 0.72651], [1.0, 0.739663], [1.0, 0.752817], [1.0, 0.765971], [1.0, 0.779125], [1.0, 0.792279], [1.0, 0.805433], [1.0, 0.818586], [1.0, 0.83174], [1.0, 0.844894], [1.0, 0.858048], [1.0, 0.871202], [1.0, 0.884355], [1.0, 0.897509], [1.0, 0.910663], [1.0, 0.923817], [1.0, 0.936971], [1.0, 0.950124], [1.0, 0.963278], [1.0, 0.976432], [1.0, 0.989586], [1.0, 1.00274], [1.0, 1.015893], [1.0, 1.029047], [1.0, 1.042201], [1.0, 1.055355], [1.0, 1.068509], [1.0, 1.081663], [1.0, 1.094816], [0.987298, 1.098295], [0.974461, 1.101364], [0.961364, 1.103638], [0.947893, 1.104772], [0.933958, 1.104487], [0.919491, 1.102581], [0.904455, 1.09894], [0.888847, 1.09355], [0.872692, 1.086494], [0.85605, 1.077952], [0.83901, 1.068191], [0.821682, 1.057554], [0.804199, 1.046445], [0.786706, 1.035306], [0.769356, 1.024601], [0.752299, 1.01479], [0.735678, 1.00631], [0.719622, 0.999556], [0.704241, 0.994861], [0.68962, 0.992484], [0.675815, 0.992597], [0.662854, 0.995286], [0.650734, 1.000543], [0.639425, 1.008272], [0.628868, 1.0183], [0.618987, 1.030386], [0.609683, 1.044237], [0.600851, 1.059525], [0.592376, 1.075905], [0.584148, 1.093036], [0.576059, 1.110594], [0.568016, 1.12829], [0.55994, 1.145887], [0.551771, 1.1632], [0.54347, 1.180111], [0.535019, 1.196563], [0.52642, 1.212564], [0.517693, 1.228172], [0.508871, 1.243494]], "deco": {"pole": [0.7496864522639506, 0.6334008289778942], "r": 0.24968645226395142, "u": [-0.3708543842248685, 0.9286910281149451], "eye": {"c": [0.6690568975017331, 0.7141235707721796], "r": 0.07490593567918542}, "pupil": {"c": [0.6509887725995149, 0.7391714394741963], "r": 0.032459238794313686}, "gill": [[0.6267814556064724, 0.5708782270479232], [0.7913552442405885, 0.5290541233511722], [0.8911109120221568, 0.6495471172959887]], "spots": [{"c": [0.7421699488195802, 0.4637070084400581], "r": 0.027465509749034656}, {"c": [0.8497381465239154, 0.46364488375201285], "r": 0.019974916181116114}]}, "edges": [{"edge": 0, "type": "mirror"}, {"edge": 1, "partner": 3, "type": "glide"}, {"edge": 2, "type": "mirror"}], "area": 0.34499999999999886, "seed": 3, "escher": {"no": 91, "title": "Beetles", "year": "1953", "url": "https://mcescher.com/wp-content/uploads/2019/06/e91.jpg"}}, {"id": "pmm", "group": "pmm", "a1": [1.0, 0.0], "a2": [0.0, 0.84], "tile": [[0.5, 0.84], [0.5, 0.8295], [0.5, 0.819], [0.5, 0.8085], [0.5, 0.798], [0.5, 0.7875], [0.5, 0.777], [0.5, 0.7665], [0.5, 0.756], [0.5, 0.7455], [0.5, 0.735], [0.5, 0.7245], [0.5, 0.714], [0.5, 0.7035], [0.5, 0.693], [0.5, 0.6825], [0.5, 0.672], [0.5, 0.6615], [0.5, 0.651], [0.5, 0.6405], [0.5, 0.63], [0.5, 0.6195], [0.5, 0.609], [0.5, 0.5985], [0.5, 0.588], [0.5, 0.5775], [0.5, 0.567], [0.5, 0.5565], [0.5, 0.546], [0.5, 0.5355], [0.5, 0.525], [0.5, 0.5145], [0.5, 0.504], [0.5, 0.4935], [0.5, 0.483], [0.5, 0.4725], [0.5, 0.462], [0.5, 0.4515], [0.5, 0.441], [0.5, 0.4305], [0.5, 0.42], [0.5125, 0.42], [0.525, 0.42], [0.5375, 0.42], [0.55, 0.42], [0.5625, 0.42], [0.575, 0.42], [0.5875, 0.42], [0.6, 0.42], [0.6125, 0.42], [0.625, 0.42], [0.6375, 0.42], [0.65, 0.42], [0.6625, 0.42], [0.675, 0.42], [0.6875, 0.42], [0.7, 0.42], [0.7125, 0.42], [0.725, 0.42], [0.7375, 0.42], [0.75, 0.42], [0.7625, 0.42], [0.775, 0.42], [0.7875, 0.42], [0.8, 0.42], [0.8125, 0.42], [0.825, 0.42], [0.8375, 0.42], [0.85, 0.42], [0.8625, 0.42], [0.875, 0.42], [0.8875, 0.42], [0.9, 0.42], [0.9125, 0.42], [0.925, 0.42], [0.9375, 0.42], [0.95, 0.42], [0.9625, 0.42], [0.975, 0.42], [0.9875, 0.42], [1.0, 0.42], [1.0, 0.4305], [1.0, 0.441], [1.0, 0.4515], [1.0, 0.462], [1.0, 0.4725], [1.0, 0.483], [1.0, 0.4935], [1.0, 0.504], [1.0, 0.5145], [1.0, 0.525], [1.0, 0.5355], [1.0, 0.546], [1.0, 0.5565], [1.0, 0.567], [1.0, 0.5775], [1.0, 0.588], [1.0, 0.5985], [1.0, 0.609], [1.0, 0.6195], [1.0, 0.63], [1.0, 0.6405], [1.0, 0.651], [1.0, 0.6615], [1.0, 0.672], [1.0, 0.6825], [1.0, 0.693], [1.0, 0.7035], [1.0, 0.714], [1.0, 0.7245], [1.0, 0.735], [1.0, 0.7455], [1.0, 0.756], [1.0, 0.7665], [1.0, 0.777], [1.0, 0.7875], [1.0, 0.798], [1.0, 0.8085], [1.0, 0.819], [1.0, 0.8295], [1.0, 0.84], [0.9875, 0.84], [0.975, 0.84], [0.9625, 0.84], [0.95, 0.84], [0.9375, 0.84], [0.925, 0.84], [0.9125, 0.84], [0.9, 0.84], [0.8875, 0.84], [0.875, 0.84], [0.8625, 0.84], [0.85, 0.84], [0.8375, 0.84], [0.825, 0.84], [0.8125, 0.84], [0.8, 0.84], [0.7875, 0.84], [0.775, 0.84], [0.7625, 0.84], [0.75, 0.84], [0.7375, 0.84], [0.725, 0.84], [0.7125, 0.84], [0.7, 0.84], [0.6875, 0.84], [0.675, 0.84], [0.6625, 0.84], [0.65, 0.84], [0.6375, 0.84], [0.625, 0.84], [0.6125, 0.84], [0.6, 0.84], [0.5875, 0.84], [0.575, 0.84], [0.5625, 0.84], [0.55, 0.84], [0.5375, 0.84], [0.525, 0.84], [0.5125, 0.84]], "deco": {"pole": [0.7113782051282044, 0.6299999999484194], "r": 0.20999999994841922, "u": [0.8086118081183302, 0.5883425394883536], "eye": {"c": [0.7604584185995261, 0.7124573382579116], "r": 0.06299999998452577}, "pupil": {"c": [0.7771288781612368, 0.7323778246392706], "r": 0.0272999999932945}, "gill": [[0.6349342178508335, 0.7172170671000363], [0.6349643892797912, 0.5744016299804262], [0.7538604964729472, 0.518072546144361]], "spots": [{"c": [0.5715024064236393, 0.6009441756315302], "r": 0.023099999994326114}, {"c": [0.5937538229824196, 0.513252474444321], "r": 0.01679999999587354}]}, "edges": [{"edge": 0, "type": "mirror"}, {"edge": 1, "type": "mirror"}, {"edge": 2, "type": "mirror"}, {"edge": 3, "type": "mirror"}], "area": 0.20999999999999375, "seed": 7, "escher": {"no": 81, "title": "Moths, flies, birds and bats", "year": "1950", "url": "https://mcescher.com/wp-content/uploads/2019/06/e81.jpg"}}, {"id": "pmg", "group": "pmg", "a1": [1.0, 0.0], "a2": [0.0, 0.84], "tile": [[0.75, -0.000408], [0.762519, -0.012261], [0.775039, -0.024074], [0.787558, -0.035783], [0.800077, -0.047279], [0.812595, -0.058396], [0.825112, -0.068898], [0.837628, -0.078488], [0.850141, -0.086811], [0.862652, -0.093482], [0.87516, -0.09811], [0.887663, -0.100326], [0.900163, -0.099825], [0.912657, -0.09639], [0.925147, -0.089925], [0.937631, -0.080472], [0.950111, -0.068224], [0.962587, -0.053522], [0.97506, -0.036843], [0.987531, -0.018779], [1.0, -0.0], [1.012469, 0.018779], [1.02494, 0.036843], [1.037413, 0.053522], [1.049889, 0.068224], [1.062369, 0.080472], [1.074853, 0.089925], [1.087343, 0.09639], [1.099837, 0.099825], [1.112337, 0.100326], [1.12484, 0.09811], [1.137348, 0.093482], [1.149859, 0.086811], [1.162372, 0.078488], [1.174888, 0.068898], [1.187405, 0.058396], [1.199923, 0.047279], [1.212442, 0.035783], [1.224961, 0.024074], [1.237481, 0.012261], [1.25, 0.000408], [1.25, 0.010894], [1.25, 0.021379], [1.25, 0.031865], [1.25, 0.042351], [1.25, 0.052837], [1.25, 0.063322], [1.25, 0.073808], [1.25, 0.084294], [1.25, 0.094779], [1.25, 0.105265], [1.25, 0.115751], [1.25, 0.126236], [1.25, 0.136722], [1.25, 0.147208], [1.25, 0.157693], [1.25, 0.168179], [1.25, 0.178665], [1.25, 0.18915], [1.25, 0.199636], [1.25, 0.210122], [1.25, 0.220607], [1.25, 0.231093], [1.25, 0.241579], [1.25, 0.252065], [1.25, 0.26255], [1.25, 0.273036], [1.25, 0.283522], [1.25, 0.294007], [1.25, 0.304493], [1.25, 0.314979], [1.25, 0.325464], [1.25, 0.33595], [1.25, 0.346436], [1.25, 0.356921], [1.25, 0.367407], [1.25, 0.377893], [1.25, 0.388378], [1.25, 0.398864], [1.25, 0.40935], [1.25, 0.419835], [1.237493, 0.408863], [1.224986, 0.39788], [1.212478, 0.386903], [1.199971, 0.376001], [1.187464, 0.365315], [1.174957, 0.355063], [1.162451, 0.345542], [1.149946, 0.337115], [1.137441, 0.330193], [1.124938, 0.325198], [1.112436, 0.322536], [1.099936, 0.322553], [1.087438, 0.325502], [1.074942, 0.331513], [1.062448, 0.340567], [1.049956, 0.352484], [1.037465, 0.366929], [1.024976, 0.383416], [1.012488, 0.401338], [1.0, 0.42], [0.987512, 0.438662], [0.975024, 0.456584], [0.962535, 0.473071], [0.950044, 0.487516], [0.937552, 0.499433], [0.925058, 0.508487], [0.912562, 0.514498], [0.900064, 0.517447], [0.887564, 0.517464], [0.875062, 0.514802], [0.862559, 0.509807], [0.850054, 0.502885], [0.837549, 0.494458], [0.825043, 0.484937], [0.812536, 0.474685], [0.800029, 0.463999], [0.787522, 0.453097], [0.775014, 0.44212], [0.762507, 0.431137], [0.75, 0.420165], [0.75, 0.40965], [0.75, 0.399136], [0.75, 0.388622], [0.75, 0.378107], [0.75, 0.367593], [0.75, 0.357079], [0.75, 0.346564], [0.75, 0.33605], [0.75, 0.325536], [0.75, 0.315021], [0.75, 0.304507], [0.75, 0.293993], [0.75, 0.283478], [0.75, 0.272964], [0.75, 0.26245], [0.75, 0.251935], [0.75, 0.241421], [0.75, 0.230907], [0.75, 0.220393], [0.75, 0.209878], [0.75, 0.199364], [0.75, 0.18885], [0.75, 0.178335], [0.75, 0.167821], [0.75, 0.157307], [0.75, 0.146792], [0.75, 0.136278], [0.75, 0.125764], [0.75, 0.115249], [0.75, 0.104735], [0.75, 0.094221], [0.75, 0.083706], [0.75, 0.073192], [0.75, 0.062678], [0.75, 0.052163], [0.75, 0.041649], [0.75, 0.031135], [0.75, 0.020621], [0.75, 0.010106]], "deco": {"pole": [0.931830321026437, 0.21387360638891592], "r": 0.18183032090582177, "u": [0.8304176461158947, -0.5571413940996813], "eye": {"c": [1.0134832017258946, 0.19850454230194975], "r": 0.054549096271746526}, "pupil": {"c": [1.0346417705297597, 0.19087777169683562], "r": 0.023637941717756832}, "gill": [[0.9799984248359656, 0.3019861752063797], [0.8638825228408374, 0.2594609457044938], [0.8534631958010864, 0.14602207726726454]], "spots": [{"c": [0.866578810211526, 0.31896145942808524], "r": 0.020001335299640394}, {"c": [0.8018975136872436, 0.274772248353091], "r": 0.014546425672465741}]}, "edges": [{"edge": 0, "type": "half-turn"}, {"edge": 1, "type": "mirror"}, {"edge": 2, "type": "half-turn"}, {"edge": 3, "type": "mirror"}], "area": 0.21000000000000085, "seed": 3, "escher": {"no": 117, "title": "Crabs", "year": "1963", "url": "https://mcescher.com/wp-content/uploads/2019/06/e117.jpg"}}, {"id": "pgg", "group": "pgg", "a1": [1.0, 0.0], "a2": [0.0, 0.84], "tile": [[0.126962, 0.911973], [0.117196, 0.914404], [0.107441, 0.916815], [0.097716, 0.919173], [0.088052, 0.921423], [0.078498, 0.923481], [0.06912, 0.925226], [0.060006, 0.926507], [0.051256, 0.927146], [0.042981, 0.926946], [0.035295, 0.925708], [0.028303, 0.923245], [0.022093, 0.919402], [0.016728, 0.914069], [0.012235, 0.907198], [0.008603, 0.898809], [0.005775, 0.889], [0.003653, 0.877946], [0.002101, 0.865887], [0.000948, 0.853125], [0.0, 0.84], [-0.000948, 0.826875], [-0.002101, 0.814113], [-0.003653, 0.802054], [-0.005775, 0.791], [-0.008603, 0.781191], [-0.012235, 0.772802], [-0.016728, 0.765931], [-0.022093, 0.760598], [-0.028303, 0.756755], [-0.035295, 0.754292], [-0.042981, 0.753054], [-0.051256, 0.752854], [-0.060006, 0.753493], [-0.06912, 0.754774], [-0.078498, 0.756519], [-0.088052, 0.758577], [-0.097716, 0.760827], [-0.107441, 0.763185], [-0.117196, 0.765596], [-0.126962, 0.768027], [-0.125875, 0.761228], [-0.124633, 0.754426], [-0.123091, 0.747621], [-0.121117, 0.740809], [-0.118604, 0.733989], [-0.115472, 0.72716], [-0.111676, 0.720323], [-0.107204, 0.713475], [-0.102083, 0.706618], [-0.096374, 0.699753], [-0.090173, 0.692881], [-0.083606, 0.686003], [-0.076822, 0.679122], [-0.069988, 0.672241], [-0.06328, 0.665362], [-0.05688, 0.658487], [-0.050963, 0.651618], [-0.045692, 0.644759], [-0.041212, 0.637912], [-0.037645, 0.631077], [-0.035083, 0.624257], [-0.033589, 0.617451], [-0.033194, 0.610662], [-0.033897, 0.603888], [-0.035667, 0.59713], [-0.038449, 0.590386], [-0.042163, 0.583655], [-0.046714, 0.576936], [-0.051994, 0.570228], [-0.05789, 0.563528], [-0.06429, 0.556836], [-0.071086, 0.550149], [-0.078179, 0.543466], [-0.085483, 0.536787], [-0.092927, 0.530109], [-0.100456, 0.523433], [-0.108032, 0.516757], [-0.115627, 0.510082], [-0.12323, 0.503406], [-0.130834, 0.496731], [-0.129776, 0.483543], [-0.128418, 0.470868], [-0.126484, 0.459176], [-0.12374, 0.448863], [-0.120019, 0.440218], [-0.115224, 0.433403], [-0.109338, 0.428449], [-0.102421, 0.425252], [-0.094601, 0.423595], [-0.086058, 0.42317], [-0.077007, 0.423613], [-0.067675, 0.424534], [-0.058279, 0.425564], [-0.049008, 0.426381], [-0.040006, 0.42674], [-0.031358, 0.426494], [-0.023092, 0.425599], [-0.015172, 0.424112], [-0.007515, 0.422176], [-0.0, 0.42], [0.007515, 0.417824], [0.015172, 0.415888], [0.023092, 0.414401], [0.031358, 0.413506], [0.040006, 0.41326], [0.049008, 0.413619], [0.058279, 0.414436], [0.067675, 0.415466], [0.077007, 0.416387], [0.086058, 0.41683], [0.094601, 0.416405], [0.102421, 0.414748], [0.109338, 0.411551], [0.115224, 0.406597], [0.120019, 0.399782], [0.12374, 0.391137], [0.126484, 0.380824], [0.128418, 0.369132], [0.129776, 0.356457], [0.130834, 0.343269], [0.138527, 0.344317], [0.146083, 0.345591], [0.153369, 0.347304], [0.160267, 0.349648], [0.16668, 0.352784], [0.172533, 0.356831], [0.17778, 0.361864], [0.182406, 0.367909], [0.186427, 0.37494], [0.189888, 0.382883], [0.192862, 0.391619], [0.195447, 0.400988], [0.197761, 0.410799], [0.199933, 0.420841], [0.202102, 0.430889], [0.204404, 0.440719], [0.206973, 0.450115], [0.209928, 0.458882], [0.213372, 0.466852], [0.217385, 0.473895], [0.222025, 0.479919], [0.227318, 0.484877], [0.233269, 0.488764], [0.239853, 0.49162], [0.247024, 0.493521], [0.254713, 0.494577], [0.262839, 0.494922], [0.271308, 0.494707], [0.280024, 0.494092], [0.288887, 0.493235], [0.297809, 0.492284], [0.306708, 0.491369], [0.315519, 0.490597], [0.324194, 0.490048], [0.332704, 0.489767], [0.341039, 0.489772], [0.349208, 0.490046], [0.357237, 0.490549], [0.365164, 0.491218], [0.373038, 0.491973], [0.374125, 0.498772], [0.375367, 0.505574], [0.376909, 0.512379], [0.378883, 0.519191], [0.381396, 0.526011], [0.384528, 0.53284], [0.388324, 0.539677], [0.392796, 0.546525], [0.397917, 0.553382], [0.403626, 0.560247], [0.409827, 0.567119], [0.416394, 0.573997], [0.423178, 0.580878], [0.430012, 0.587759], [0.43672, 0.594638], [0.44312, 0.601513], [0.449037, 0.608382], [0.454308, 0.615241], [0.458788, 0.622088], [0.462355, 0.628923], [0.464917, 0.635743], [0.466411, 0.642549], [0.466806, 0.649338], [0.466103, 0.656112], [0.464333, 0.66287], [0.461551, 0.669614], [0.457837, 0.676345], [0.453286, 0.683064], [0.448006, 0.689772], [0.44211, 0.696472], [0.43571, 0.703164], [0.428914, 0.709851], [0.421821, 0.716534], [0.414517, 0.723213], [0.407073, 0.729891], [0.399544, 0.736567], [0.391968, 0.743243], [0.384373, 0.749918], [0.37677, 0.756594], [0.369166, 0.763269], [0.361473, 0.764317], [0.353917, 0.765591], [0.346631, 0.767304], [0.339733, 0.769648], [0.33332, 0.772784], [0.327467, 0.776831], [0.32222, 0.781864], [0.317594, 0.787909], [0.313573, 0.79494], [0.310112, 0.802883], [0.307138, 0.811619], [0.304553, 0.820988], [0.302239, 0.830799], [0.300067, 0.840841], [0.297898, 0.850889], [0.295596, 0.860719], [0.293027, 0.870115], [0.290072, 0.878882], [0.286628, 0.886852], [0.282615, 0.893895], [0.277975, 0.899919], [0.272682, 0.904877], [0.266731, 0.908764], [0.260147, 0.91162], [0.252976, 0.913521], [0.245287, 0.914577], [0.237161, 0.914922], [0.228692, 0.914707], [0.219976, 0.914092], [0.211113, 0.913235], [0.202191, 0.912284], [0.193292, 0.911369], [0.184481, 0.910597], [0.175806, 0.910048], [0.167296, 0.909767], [0.158961, 0.909772], [0.150792, 0.910046], [0.142763, 0.910549], [0.134836, 0.911218]], "deco": {"pole": [0.15766234842842924, 0.6715527882939608], "r": 0.19777939792088417, "u": [-0.753432201037632, -0.6575256028776287], "eye": {"c": [0.11848483746219557, 0.5901114747178079], "r": 0.05933381937626525}, "pupil": {"c": [0.10450458394638515, 0.5700356715623806], "r": 0.025711321729714944}, "gill": [[0.23663777660328783, 0.5960976872842098], [0.22471836362137249, 0.7300730463285775], [0.10848959367265656, 0.7730168928746526]], "spots": [{"c": [0.28646324102691256, 0.710456956577157], "r": 0.021755733771297258}, {"c": [0.2582873726202997, 0.7908695062720813], "r": 0.015822351833670735}]}, "edges": [{"edge": 0, "type": "half-turn"}, {"edge": 1, "partner": 4, "type": "glide"}, {"edge": 2, "type": "half-turn"}, {"edge": 3, "partner": 5, "type": "glide"}], "area": 0.21000000000000263, "seed": 3, "escher": {"no": 16, "title": "Animals", "year": "1938", "url": "https://mcescher.com/wp-content/uploads/2019/06/e16.jpg"}}, {"id": "cmm", "group": "cmm", "a1": [1.0, 0.0], "a2": [0.0, 1.38], "tile": [[0.5, 0.345754], [0.5, 0.33711], [0.5, 0.328467], [0.5, 0.319823], [0.5, 0.311179], [0.5, 0.302535], [0.5, 0.293891], [0.5, 0.285247], [0.5, 0.276603], [0.5, 0.26796], [0.5, 0.259316], [0.5, 0.250672], [0.5, 0.242028], [0.5, 0.233384], [0.5, 0.22474], [0.5, 0.216096], [0.5, 0.207453], [0.5, 0.198809], [0.5, 0.190165], [0.5, 0.181521], [0.5, 0.172877], [0.5, 0.164233], [0.5, 0.155589], [0.5, 0.146946], [0.5, 0.138302], [0.5, 0.129658], [0.5, 0.121014], [0.5, 0.11237], [0.5, 0.103726], [0.5, 0.095082], [0.5, 0.086439], [0.5, 0.077795], [0.5, 0.069151], [0.5, 0.060507], [0.5, 0.051863], [0.5, 0.043219], [0.5, 0.034575], [0.5, 0.025932], [0.5, 0.017288], [0.5, 0.008644], [0.5, -0.0], [0.5125, -0.0], [0.525, -0.0], [0.5375, -0.0], [0.55, -0.0], [0.5625, -0.0], [0.575, -0.0], [0.5875, -0.0], [0.6, -0.0], [0.6125, -0.0], [0.625, -0.0], [0.6375, -0.0], [0.65, -0.0], [0.6625, -0.0], [0.675, 0.0], [0.6875, 0.0], [0.7, 0.0], [0.7125, 0.0], [0.725, 0.0], [0.7375, 0.0], [0.75, 0.0], [0.7625, 0.0], [0.775, 0.0], [0.7875, 0.0], [0.8, 0.0], [0.8125, 0.0], [0.825, 0.0], [0.8375, 0.0], [0.85, 0.0], [0.8625, 0.0], [0.875, 0.0], [0.8875, 0.0], [0.9, 0.0], [0.9125, 0.0], [0.925, 0.0], [0.9375, 0.0], [0.95, 0.0], [0.9625, 0.0], [0.975, 0.0], [0.9875, 0.0], [1.0, 0.0], [1.0, 0.008606], [1.0, 0.017212], [1.0, 0.025818], [1.0, 0.034425], [1.0, 0.043031], [1.0, 0.051637], [1.0, 0.060243], [1.0, 0.068849], [1.0, 0.077455], [1.0, 0.086061], [1.0, 0.094668], [1.0, 0.103274], [1.0, 0.11188], [1.0, 0.120486], [1.0, 0.129092], [1.0, 0.137698], [1.0, 0.146304], [1.0, 0.154911], [1.0, 0.163517], [1.0, 0.172123], [1.0, 0.180729], [1.0, 0.189335], [1.0, 0.197941], [1.0, 0.206547], [1.0, 0.215154], [1.0, 0.22376], [1.0, 0.232366], [1.0, 0.240972], [1.0, 0.249578], [1.0, 0.258184], [1.0, 0.26679], [1.0, 0.275397], [1.0, 0.284003], [1.0, 0.292609], [1.0, 0.301215], [1.0, 0.309821], [1.0, 0.318427], [1.0, 0.327033], [1.0, 0.33564], [1.0, 0.344246], [0.987536, 0.356157], [0.975072, 0.368028], [0.962607, 0.379795], [0.950142, 0.391349], [0.937675, 0.402524], [0.925207, 0.413085], [0.912736, 0.422732], [0.900261, 0.431113], [0.887781, 0.437843], [0.875295, 0.442529], [0.862802, 0.444803], [0.850301, 0.44436], [0.83779, 0.440983], [0.825271, 0.434576], [0.812743, 0.425181], [0.800206, 0.412991], [0.787661, 0.398348], [0.775111, 0.381727], [0.762557, 0.363721], [0.75, 0.345], [0.737443, 0.326279], [0.724889, 0.308273], [0.712339, 0.291652], [0.699794, 0.277009], [0.687257, 0.264819], [0.674729, 0.255424], [0.66221, 0.249017], [0.649699, 0.24564], [0.637198, 0.245197], [0.624705, 0.247471], [0.612219, 0.252157], [0.599739, 0.258887], [0.587264, 0.267268], [0.574793, 0.276915], [0.562325, 0.287476], [0.549858, 0.298651], [0.537393, 0.310205], [0.524928, 0.321972], [0.512464, 0.333843]], "deco": {"pole": [0.8309017812212307, 0.1701343895412538], "r": 0.1690982187787693, "u": [-0.8833054581189107, 0.4687978963874958], "eye": {"c": [0.7538992017225874, 0.17654323469573974], "r": 0.05072946563363079}, "pupil": {"c": [0.73359716949254, 0.1815750200171387], "r": 0.02198276844124001}, "gill": [[0.7947699611160066, 0.08401978629592587], [0.8981162020436934, 0.134461589380392], [0.8969066772475494, 0.24039441493730979]], "spots": [{"c": [0.901311907587643, 0.0791628919189785], "r": 0.01860080406566462}, {"c": [0.9569195240230625, 0.12622538148175003], "r": 0.013527857502301543}]}, "edges": [{"edge": 0, "type": "mirror"}, {"edge": 1, "type": "mirror"}, {"edge": 2, "type": "mirror"}, {"edge": 3, "type": "half-turn"}], "area": 0.17249999999999943, "seed": 3, "escher": {"no": 132, "title": "Flowers", "year": "1967", "url": "https://mcescher.com/wp-content/uploads/2019/06/e132.jpg"}}, {"id": "p4", "group": "p4", "a1": [1.0, 0.0], "a2": [0.0, 1.0], "tile": [[0.0, 1.0], [-0.007269, 0.98684], [-0.014352, 0.973753], [-0.021067, 0.96081], [-0.027247, 0.948075], [-0.032737, 0.935609], [-0.037409, 0.923462], [-0.041156, 0.911677], [-0.043899, 0.900283], [-0.045589, 0.889299], [-0.046204, 0.878735], [-0.045754, 0.868586], [-0.04427, 0.858841], [-0.04181, 0.849476], [-0.03845, 0.840463], [-0.03428, 0.831765], [-0.029404, 0.823343], [-0.023927, 0.815156], [-0.017957, 0.80716], [-0.011601, 0.799315], [-0.004953, 0.791584], [0.001898, 0.783932], [0.008879, 0.776332], [0.015931, 0.768758], [0.023011, 0.761196], [0.030088, 0.753632], [0.037149, 0.746062], [0.04419, 0.738485], [0.051219, 0.730903], [0.05825, 0.723321], [0.065302, 0.715748], [0.072397, 0.708191], [0.079553, 0.700658], [0.086789, 0.693157], [0.094116, 0.685691], [0.101539, 0.678262], [0.109057, 0.67087], [0.116661, 0.663513], [0.124337, 0.656182], [0.132063, 0.648872], [0.139815, 0.641572], [0.155129, 0.654083], [0.170303, 0.66624], [0.185205, 0.677705], [0.19971, 0.68816], [0.213709, 0.697326], [0.227108, 0.704967], [0.239835, 0.710898], [0.251841, 0.714995], [0.263099, 0.717189], [0.273607, 0.717474], [0.283384, 0.715902], [0.292472, 0.712574], [0.300929, 0.707641], [0.308828, 0.70129], [0.316255, 0.693736], [0.3233, 0.685212], [0.330059, 0.675957], [0.336623, 0.66621], [0.343081, 0.656193], [0.349514, 0.64611], [0.355991, 0.636139], [0.362567, 0.626421], [0.369285, 0.617065], [0.376174, 0.608144], [0.383248, 0.599692], [0.390508, 0.591715], [0.397945, 0.584187], [0.40554, 0.57706], [0.413267, 0.57027], [0.421097, 0.563743], [0.429, 0.557401], [0.436945, 0.551166], [0.444906, 0.544972], [0.452861, 0.538763], [0.460794, 0.532496], [0.468695, 0.526149], [0.476561, 0.519713], [0.484395, 0.513194], [0.492204, 0.506614], [0.5, 0.5], [0.506614, 0.507796], [0.513194, 0.515605], [0.519713, 0.523439], [0.526149, 0.531305], [0.532496, 0.539206], [0.538763, 0.547139], [0.544972, 0.555094], [0.551166, 0.563055], [0.557401, 0.571], [0.563743, 0.578903], [0.57027, 0.586733], [0.57706, 0.59446], [0.584187, 0.602055], [0.591715, 0.609492], [0.599692, 0.616752], [0.608144, 0.623826], [0.617065, 0.630715], [0.626421, 0.637433], [0.636139, 0.644009], [0.64611, 0.650486], [0.656193, 0.656919], [0.66621, 0.663377], [0.675957, 0.669941], [0.685212, 0.6767], [0.693736, 0.683745], [0.70129, 0.691172], [0.707641, 0.699071], [0.712574, 0.707528], [0.715902, 0.716616], [0.717474, 0.726393], [0.717189, 0.736901], [0.714995, 0.748159], [0.710898, 0.760165], [0.704967, 0.772892], [0.697326, 0.786291], [0.68816, 0.80029], [0.677705, 0.814795], [0.66624, 0.829697], [0.654083, 0.844871], [0.641572, 0.860185], [0.625951, 0.858526], [0.610762, 0.857305], [0.596405, 0.856925], [0.583218, 0.857731], [0.571452, 0.859976], [0.561259, 0.863813], [0.55268, 0.869284], [0.54565, 0.876324], [0.540009, 0.884771], [0.535522, 0.894386], [0.531904, 0.90488], [0.528846, 0.915942], [0.526051, 0.927271], [0.523255, 0.938597], [0.520249, 0.949712], [0.516899, 0.960478], [0.513148, 0.970838], [0.509015, 0.980812], [0.504588, 0.990487], [0.5, 1.0], [0.495412, 1.009513], [0.490985, 1.019188], [0.486852, 1.029162], [0.483101, 1.039522], [0.479751, 1.050288], [0.476745, 1.061403], [0.473949, 1.072729], [0.471154, 1.084058], [0.468096, 1.09512], [0.464478, 1.105614], [0.459991, 1.115229], [0.45435, 1.123676], [0.44732, 1.130716], [0.438741, 1.136187], [0.428548, 1.140024], [0.416782, 1.142269], [0.403595, 1.143075], [0.389238, 1.142695], [0.374049, 1.141474], [0.358428, 1.139815], [0.351128, 1.132063], [0.343818, 1.124337], [0.336487, 1.116661], [0.32913, 1.109057], [0.321738, 1.101539], [0.314309, 1.094116], [0.306843, 1.086789], [0.299342, 1.079553], [0.291809, 1.072397], [0.284252, 1.065302], [0.276679, 1.05825], [0.269097, 1.051219], [0.261515, 1.04419], [0.253938, 1.037149], [0.246368, 1.030088], [0.238804, 1.023011], [0.231242, 1.015931], [0.223668, 1.008879], [0.216068, 1.001898], [0.208416, 0.995047], [0.200685, 0.988399], [0.19284, 0.982043], [0.184844, 0.976073], [0.176657, 0.970596], [0.168235, 0.96572], [0.159537, 0.96155], [0.150524, 0.95819], [0.141159, 0.95573], [0.131414, 0.954246], [0.121265, 0.953796], [0.110701, 0.954411], [0.099717, 0.956101], [0.088323, 0.958844], [0.076538, 0.962591], [0.064391, 0.967263], [0.051925, 0.972753], [0.03919, 0.978933], [0.026247, 0.985648], [0.01316, 0.992731]], "deco": {"pole": [0.3520306077829357, 0.8821902902754003], "r": 0.17975292494454148, "u": [0.3610466514721096, -0.9325477550564245], "eye": {"c": [0.4094613418651587, 0.8234683063900579], "r": 0.053925877483362444}, "pupil": {"c": [0.42227809046103976, 0.8052998997447413], "r": 0.023367880242790393}, "gill": [[0.4409811508427805, 0.9262662550104425], [0.32282597154334086, 0.9576229742552365], [0.2501002263943821, 0.8716399628647298]], "spots": [{"c": [0.3587290012180586, 1.0042915396411447], "r": 0.019772821743899563}, {"c": [0.2812938559063483, 1.0051523728432243], "r": 0.014380233995563318}]}, "edges": [{"edge": 0, "partner": 4, "type": "rot"}, {"edge": 1, "partner": 2, "type": "rot"}, {"edge": 3, "type": "half-turn"}], "area": 0.2500000000000071, "seed": 2, "escher": {"no": 35, "title": "Lizards", "year": "1941", "url": "https://mcescher.com/wp-content/uploads/2019/06/e35.jpg"}}, {"id": "p4m", "group": "p4m", "a1": [1.0, 0.0], "a2": [0.0, 1.0], "tile": [[0.0, 1.0], [0.0125, 0.9875], [0.025, 0.975], [0.0375, 0.9625], [0.05, 0.95], [0.0625, 0.9375], [0.075, 0.925], [0.0875, 0.9125], [0.1, 0.9], [0.1125, 0.8875], [0.125, 0.875], [0.1375, 0.8625], [0.15, 0.85], [0.1625, 0.8375], [0.175, 0.825], [0.1875, 0.8125], [0.2, 0.8], [0.2125, 0.7875], [0.225, 0.775], [0.2375, 0.7625], [0.25, 0.75], [0.2625, 0.7375], [0.275, 0.725], [0.2875, 0.7125], [0.3, 0.7], [0.3125, 0.6875], [0.325, 0.675], [0.3375, 0.6625], [0.35, 0.65], [0.3625, 0.6375], [0.375, 0.625], [0.3875, 0.6125], [0.4, 0.6], [0.4125, 0.5875], [0.425, 0.575], [0.4375, 0.5625], [0.45, 0.55], [0.4625, 0.5375], [0.475, 0.525], [0.4875, 0.5125], [0.5, 0.5], [0.5, 0.5125], [0.5, 0.525], [0.5, 0.5375], [0.5, 0.55], [0.5, 0.5625], [0.5, 0.575], [0.5, 0.5875], [0.5, 0.6], [0.5, 0.6125], [0.5, 0.625], [0.5, 0.6375], [0.5, 0.65], [0.5, 0.6625], [0.5, 0.675], [0.5, 0.6875], [0.5, 0.7], [0.5, 0.7125], [0.5, 0.725], [0.5, 0.7375], [0.5, 0.75], [0.5, 0.7625], [0.5, 0.775], [0.5, 0.7875], [0.5, 0.8], [0.5, 0.8125], [0.5, 0.825], [0.5, 0.8375], [0.5, 0.85], [0.5, 0.8625], [0.5, 0.875], [0.5, 0.8875], [0.5, 0.9], [0.5, 0.9125], [0.5, 0.925], [0.5, 0.9375], [0.5, 0.95], [0.5, 0.9625], [0.5, 0.975], [0.5, 0.9875], [0.5, 1.0], [0.4875, 1.0], [0.475, 1.0], [0.4625, 1.0], [0.45, 1.0], [0.4375, 1.0], [0.425, 1.0], [0.4125, 1.0], [0.4, 1.0], [0.3875, 1.0], [0.375, 1.0], [0.3625, 1.0], [0.35, 1.0], [0.3375, 1.0], [0.325, 1.0], [0.3125, 1.0], [0.3, 1.0], [0.2875, 1.0], [0.275, 1.0], [0.2625, 1.0], [0.25, 1.0], [0.2375, 1.0], [0.225, 1.0], [0.2125, 1.0], [0.2, 1.0], [0.1875, 1.0], [0.175, 1.0], [0.1625, 1.0], [0.15, 1.0], [0.1375, 1.0], [0.125, 1.0], [0.1125, 1.0], [0.1, 1.0], [0.0875, 1.0], [0.075, 1.0], [0.0625, 1.0], [0.05, 1.0], [0.0375, 1.0], [0.025, 1.0], [0.0125, 1.0]], "deco": {"pole": [0.3502420572134165, 0.8549249624594663], "r": 0.1450749908865292, "u": [0.3887533361392475, -0.9213418712077539], "eye": {"c": [0.39798883906876203, 0.808937933366104], "r": 0.043522497265958755}, "pupil": {"c": [0.40876655537952844, 0.7945902453387681], "r": 0.018859748815248798}, "gill": [[0.4209371528414045, 0.8926272583215384], [0.3248627831995374, 0.9150736110654455], [0.26826728424592666, 0.8439553993111627]], "spots": [{"c": [0.3527008832602368, 0.9535879821474513], "r": 0.01595824899751821}, {"c": [0.29021167596109826, 0.9524148136394625], "r": 0.011605999270922335}]}, "edges": [{"edge": 0, "type": "mirror"}, {"edge": 1, "type": "mirror"}, {"edge": 2, "type": "mirror"}], "area": 0.12499999999999822, "seed": 7, "escher": null}, {"id": "p4g", "group": "p4g", "a1": [1.0, 0.0], "a2": [0.0, 1.0], "tile": [[0.749657, 0.249657], [0.755607, 0.243106], [0.761353, 0.236351], [0.766702, 0.229197], [0.771481, 0.221473], [0.775553, 0.213038], [0.778814, 0.203791], [0.781209, 0.193676], [0.782731, 0.182684], [0.783421, 0.170859], [0.783369, 0.15829], [0.782709, 0.14511], [0.781611, 0.131492], [0.780277, 0.117638], [0.778929, 0.103768], [0.777797, 0.090116], [0.777111, 0.076912], [0.777091, 0.064374], [0.777931, 0.0527], [0.7798, 0.042057], [0.782827, 0.032574], [0.787097, 0.024339], [0.792653, 0.017393], [0.799491, 0.011732], [0.807563, 0.00731], [0.816784, 0.004038], [0.827032, 0.001797], [0.838161, 0.00044], [0.850008, -0.000198], [0.8624, -0.000289], [0.875167, -4e-06], [0.888147, 0.000494], [0.901196, 0.001063], [0.914196, 0.00158], [0.927054, 0.001957], [0.939711, 0.002131], [0.952139, 0.002076], [0.964342, 0.001795], [0.976349, 0.001318], [0.988212, 0.000697], [1.0, 0.0], [1.000697, 0.011788], [1.001318, 0.023651], [1.001795, 0.035658], [1.002076, 0.047861], [1.002131, 0.060289], [1.001957, 0.072946], [1.00158, 0.085804], [1.001063, 0.098804], [1.000494, 0.111853], [0.999996, 0.124833], [0.999711, 0.1376], [0.999802, 0.149992], [1.00044, 0.161839], [1.001797, 0.172968], [1.004038, 0.183216], [1.00731, 0.192437], [1.011732, 0.200509], [1.017393, 0.207347], [1.024339, 0.212903], [1.032574, 0.217173], [1.042057, 0.2202], [1.0527, 0.222069], [1.064374, 0.222909], [1.076912, 0.222889], [1.090116, 0.222203], [1.103768, 0.221071], [1.117638, 0.219723], [1.131492, 0.218389], [1.14511, 0.217291], [1.15829, 0.216631], [1.170859, 0.216579], [1.182684, 0.217269], [1.193676, 0.218791], [1.203791, 0.221186], [1.213038, 0.224447], [1.221473, 0.228519], [1.229197, 0.233298], [1.236351, 0.238647], [1.243106, 0.244393], [1.249657, 0.250343], [1.243416, 0.256584], [1.237174, 0.262826], [1.230933, 0.269067], [1.224691, 0.275309], [1.21845, 0.28155], [1.212209, 0.287791], [1.205967, 0.294033], [1.199726, 0.300274], [1.193484, 0.306516], [1.187243, 0.312757], [1.181001, 0.318999], [1.17476, 0.32524], [1.168519, 0.331481], [1.162277, 0.337723], [1.156036, 0.343964], [1.149794, 0.350206], [1.143553, 0.356447], [1.137311, 0.362689], [1.13107, 0.36893], [1.124829, 0.375171], [1.118587, 0.381413], [1.112346, 0.387654], [1.106104, 0.393896], [1.099863, 0.400137], [1.093621, 0.406379], [1.08738, 0.41262], [1.081139, 0.418861], [1.074897, 0.425103], [1.068656, 0.431344], [1.062414, 0.437586], [1.056173, 0.443827], [1.049931, 0.450069], [1.04369, 0.45631], [1.037449, 0.462551], [1.031207, 0.468793], [1.024966, 0.475034], [1.018724, 0.481276], [1.012483, 0.487517], [1.006241, 0.493759], [1.0, 0.5], [0.993741, 0.493741], [0.987483, 0.487483], [0.981224, 0.481224], [0.974966, 0.474966], [0.968707, 0.468707], [0.962449, 0.462449], [0.95619, 0.45619], [0.949931, 0.449931], [0.943673, 0.443673], [0.937414, 0.437414], [0.931156, 0.431156], [0.924897, 0.424897], [0.918639, 0.418639], [0.91238, 0.41238], [0.906121, 0.406121], [0.899863, 0.399863], [0.893604, 0.393604], [0.887346, 0.387346], [0.881087, 0.381087], [0.874829, 0.374829], [0.86857, 0.36857], [0.862311, 0.362311], [0.856053, 0.356053], [0.849794, 0.349794], [0.843536, 0.343536], [0.837277, 0.337277], [0.831019, 0.331019], [0.82476, 0.32476], [0.818501, 0.318501], [0.812243, 0.312243], [0.805984, 0.305984], [0.799726, 0.299726], [0.793467, 0.293467], [0.787209, 0.287209], [0.78095, 0.28095], [0.774691, 0.274691], [0.768433, 0.268433], [0.762174, 0.262174], [0.755916, 0.255916]], "deco": {"pole": [0.9999593093004074, 0.3316736225943014], "r": 0.11899595022335094, "u": [-0.5309610147416446, -0.847396247823014], "eye": {"c": [0.9915733908090704, 0.27794940158310005], "r": 0.03569878506700528}, "pupil": {"c": [0.987016627203144, 0.26395352866162974], "r": 0.015469473529035622}, "gill": [[1.0585786167734152, 0.30196524291616633], [1.028391304016739, 0.37705014737073217], [0.953976443923547, 0.3815493466175168]], "spots": [{"c": [1.0673665618815766, 0.3765013711294442], "r": 0.013089554524568604}, {"c": [1.0371410268683339, 0.41790813079780315], "r": 0.009519676017868075}]}, "edges": [{"edge": 0, "partner": 1, "type": "rot"}, {"edge": 2, "type": "mirror"}, {"edge": 3, "type": "mirror"}], "area": 0.12500000000000355, "seed": 3, "escher": {"no": 45, "title": "Angels and devils", "year": "1941", "url": "https://mcescher.com/wp-content/uploads/2019/06/e45.jpg"}}, {"id": "p3", "group": "p3", "a1": [1.0, 0.0], "a2": [-0.5, 0.8660254037844386], "tile": [[0.642342, -4.2e-05], [0.651285, -0.010783], [0.660228, -0.021337], [0.669171, -0.031525], [0.678113, -0.041178], [0.687056, -0.050143], [0.695998, -0.058292], [0.70494, -0.065517], [0.713882, -0.071741], [0.722824, -0.076914], [0.731766, -0.081015], [0.740708, -0.084052], [0.74965, -0.086059], [0.758591, -0.087091], [0.767533, -0.087225], [0.776474, -0.086551], [0.785416, -0.085172], [0.794357, -0.083193], [0.803298, -0.080724], [0.812239, -0.077867], [0.82118, -0.074721], [0.830121, -0.071372], [0.839062, -0.067892], [0.848003, -0.064342], [0.856944, -0.060765], [0.865885, -0.057189], [0.874826, -0.05363], [0.883767, -0.050091], [0.892708, -0.046564], [0.901649, -0.043035], [0.91059, -0.039485], [0.919531, -0.035892], [0.928472, -0.032238], [0.937413, -0.028505], [0.946354, -0.02468], [0.955295, -0.02076], [0.964236, -0.016745], [0.973177, -0.012644], [0.982118, -0.008472], [0.991059, -0.004249], [1.0, 0.0], [1.000791, 0.009868], [1.001604, 0.019722], [1.002461, 0.029551], [1.00338, 0.039345], [1.004374, 0.049095], [1.005449, 0.058799], [1.006608, 0.068454], [1.007845, 0.078064], [1.009151, 0.087634], [1.01051, 0.097173], [1.011906, 0.106692], [1.01332, 0.116199], [1.014736, 0.125706], [1.016142, 0.135219], [1.01753, 0.144741], [1.018904, 0.154272], [1.020277, 0.163804], [1.021672, 0.173322], [1.02313, 0.182805], [1.024699, 0.192223], [1.026445, 0.20154], [1.028442, 0.210711], [1.030774, 0.219689], [1.033531, 0.228421], [1.036807, 0.236855], [1.040695, 0.244935], [1.045281, 0.252611], [1.050646, 0.259839], [1.056854, 0.26658], [1.063955, 0.272805], [1.071978, 0.278498], [1.080929, 0.283656], [1.09079, 0.288288], [1.101519, 0.292419], [1.113047, 0.29609], [1.125283, 0.299351], [1.138114, 0.302269], [1.151408, 0.30492], [1.165019, 0.307387], [1.178792, 0.309762], [1.162398, 0.308484], [1.146267, 0.307382], [1.13065, 0.306624], [1.115784, 0.306367], [1.101875, 0.30675], [1.089099, 0.30789], [1.077593, 0.309879], [1.067451, 0.312778], [1.058722, 0.316622], [1.05141, 0.321413], [1.04548, 0.327126], [1.040853, 0.333711], [1.037418, 0.341092], [1.035037, 0.349178], [1.03355, 0.35786], [1.032784, 0.367025], [1.03256, 0.376551], [1.032702, 0.386323], [1.033045, 0.396228], [1.033436, 0.406166], [1.033745, 0.416048], [1.033865, 0.425805], [1.033716, 0.435382], [1.033245, 0.444743], [1.032425, 0.453871], [1.031252, 0.462764], [1.029746, 0.471434], [1.027941, 0.479904], [1.025886, 0.488207], [1.023636, 0.49638], [1.021249, 0.504462], [1.018781, 0.512489], [1.016284, 0.520497], [1.013798, 0.528512], [1.011354, 0.536555], [1.00897, 0.544639], [1.006653, 0.552767], [1.004396, 0.560935], [1.002186, 0.569134], [1.0, 0.57735], [0.991792, 0.579565], [0.983586, 0.581751], [0.975384, 0.583881], [0.967186, 0.585938], [0.958993, 0.587915], [0.950806, 0.58982], [0.942621, 0.591675], [0.934438, 0.593516], [0.926252, 0.595393], [0.91806, 0.597366], [0.909857, 0.599504], [0.901639, 0.601875], [0.893401, 0.604548], [0.885139, 0.607578], [0.876852, 0.611009], [0.868536, 0.614862], [0.860193, 0.619135], [0.851825, 0.623795], [0.843436, 0.628777], [0.835032, 0.633986], [0.826621, 0.639294], [0.818214, 0.644543], [0.809823, 0.649552], [0.801461, 0.654122], [0.793141, 0.65804], [0.784878, 0.661093], [0.776686, 0.663074], [0.768576, 0.663791], [0.76056, 0.663076], [0.752646, 0.660796], [0.744842, 0.65686], [0.737148, 0.651222], [0.729566, 0.643888], [0.722091, 0.634918], [0.714716, 0.624424], [0.70743, 0.61257], [0.700219, 0.599567], [0.693067, 0.585663], [0.685956, 0.571142], [0.678865, 0.556306], [0.686418, 0.541579], [0.693649, 0.527067], [0.700249, 0.512977], [0.705937, 0.499496], [0.710465, 0.48679], [0.713636, 0.474992], [0.715303, 0.464199], [0.715379, 0.454469], [0.713838, 0.445819], [0.710713, 0.438228], [0.706093, 0.431637], [0.700117, 0.425951], [0.692966, 0.421051], [0.684851, 0.416796], [0.676004, 0.413029], [0.666668, 0.409589], [0.657079, 0.406318], [0.647463, 0.403066], [0.638019, 0.399698], [0.628915, 0.396104], [0.62028, 0.392195], [0.612201, 0.387915], [0.604723, 0.383234], [0.597845, 0.378151], [0.591529, 0.372693], [0.585702, 0.366908], [0.580264, 0.360863], [0.575096, 0.354638], [0.570069, 0.348318], [0.565053, 0.341991], [0.559927, 0.335738], [0.554584, 0.329629], [0.548941, 0.323721], [0.542941, 0.318052], [0.536558, 0.312639], [0.529795, 0.30748], [0.522687, 0.302551], [0.515295, 0.297812], [0.5077, 0.293208], [0.5, 0.288675], [0.500076, 0.27974], [0.500265, 0.270861], [0.500673, 0.26209], [0.501388, 0.25347], [0.502475, 0.245033], [0.503971, 0.236799], [0.50588, 0.228768], [0.508175, 0.220927], [0.510794, 0.213245], [0.513646, 0.205679], [0.516618, 0.198172], [0.519577, 0.190659], [0.522385, 0.18307], [0.524901, 0.175338], [0.526997, 0.1674], [0.528566, 0.159201], [0.529529, 0.150703], [0.529844, 0.141886], [0.529511, 0.13275], [0.528578, 0.123318], [0.527139, 0.113636], [0.525334, 0.103773], [0.523342, 0.093819], [0.521381, 0.083879], [0.519691, 0.074074], [0.51853, 0.064529], [0.518158, 0.055374], [0.518826, 0.04673], [0.520762, 0.038712], [0.52416, 0.031416], [0.529172, 0.024914], [0.535892, 0.019255], [0.544357, 0.014456], [0.554537, 0.010503], [0.56634, 0.007349], [0.579608, 0.004918], [0.594126, 0.003103], [0.609629, 0.001774], [0.625812, 0.000781]], "deco": {"pole": [0.7816861111529048, 0.1963342751335118], "r": 0.2407911552216997, "u": [-0.02803478739745129, 0.9996069481028931], "eye": {"c": [0.7355255169142574, 0.2962117148981829], "r": 0.0722373465665099}, "pupil": {"c": [0.7274945580989581, 0.32489278044902803], "r": 0.03130285017882096}, "gill": [[0.6496405561043628, 0.18058665867934026], [0.7847238491326269, 0.08802084482291182], [0.9150817719702121, 0.16394258922741667]], "spots": [{"c": [0.7184764157317042, 0.04521228974041359], "r": 0.026487027074386965}, {"c": [0.8158351050672499, 0.009401059389731119], "r": 0.019263292417735976}]}, "edges": [{"edge": 0, "partner": 1, "type": "rot"}, {"edge": 2, "partner": 3, "type": "rot"}, {"edge": 4, "partner": 5, "type": "rot"}], "area": 0.28867513459481486, "seed": 2, "escher": {"no": 25, "title": "Lizards", "year": "1939", "url": "https://mcescher.com/wp-content/uploads/2019/06/e25.jpg"}}, {"id": "p3m1", "group": "p3m1", "a1": [1.0, 0.0], "a2": [-0.5, 0.8660254037844386], "tile": [[0.5, 0.288675], [0.5, 0.303109], [0.5, 0.317543], [0.5, 0.331976], [0.5, 0.34641], [0.5, 0.360844], [0.5, 0.375278], [0.5, 0.389711], [0.5, 0.404145], [0.5, 0.418579], [0.5, 0.433013], [0.5, 0.447446], [0.5, 0.46188], [0.5, 0.476314], [0.5, 0.490748], [0.5, 0.505181], [0.5, 0.519615], [0.5, 0.534049], [0.5, 0.548483], [0.5, 0.562917], [0.5, 0.57735], [0.5, 0.591784], [0.5, 0.606218], [0.5, 0.620652], [0.5, 0.635085], [0.5, 0.649519], [0.5, 0.663953], [0.5, 0.678387], [0.5, 0.69282], [0.5, 0.707254], [0.5, 0.721688], [0.5, 0.736122], [0.5, 0.750555], [0.5, 0.764989], [0.5, 0.779423], [0.5, 0.793857], [0.5, 0.80829], [0.5, 0.822724], [0.5, 0.837158], [0.5, 0.851592], [0.5, 0.866025], [0.4875, 0.858809], [0.475, 0.851592], [0.4625, 0.844375], [0.45, 0.837158], [0.4375, 0.829941], [0.425, 0.822724], [0.4125, 0.815507], [0.4, 0.80829], [0.3875, 0.801073], [0.375, 0.793857], [0.3625, 0.78664], [0.35, 0.779423], [0.3375, 0.772206], [0.325, 0.764989], [0.3125, 0.757772], [0.3, 0.750555], [0.2875, 0.743338], [0.275, 0.736122], [0.2625, 0.728905], [0.25, 0.721688], [0.2375, 0.714471], [0.225, 0.707254], [0.2125, 0.700037], [0.2, 0.69282], [0.1875, 0.685603], [0.175, 0.678387], [0.1625, 0.67117], [0.15, 0.663953], [0.1375, 0.656736], [0.125, 0.649519], [0.1125, 0.642302], [0.1, 0.635085], [0.0875, 0.627868], [0.075, 0.620652], [0.0625, 0.613435], [0.05, 0.606218], [0.0375, 0.599001], [0.025, 0.591784], [0.0125, 0.584567], [0.0, 0.57735], [0.0125, 0.570133], [0.025, 0.562917], [0.0375, 0.5557], [0.05, 0.548483], [0.0625, 0.541266], [0.075, 0.534049], [0.0875, 0.526832], [0.1, 0.519615], [0.1125, 0.512398], [0.125, 0.505181], [0.1375, 0.497965], [0.15, 0.490748], [0.1625, 0.483531], [0.175, 0.476314], [0.1875, 0.469097], [0.2, 0.46188], [0.2125, 0.454663], [0.225, 0.447446], [0.2375, 0.44023], [0.25, 0.433013], [0.2625, 0.425796], [0.275, 0.418579], [0.2875, 0.411362], [0.3, 0.404145], [0.3125, 0.396928], [0.325, 0.389711], [0.3375, 0.382495], [0.35, 0.375278], [0.3625, 0.368061], [0.375, 0.360844], [0.3875, 0.353627], [0.4, 0.34641], [0.4125, 0.339193], [0.425, 0.331976], [0.4375, 0.32476], [0.45, 0.317543], [0.4625, 0.310326], [0.475, 0.303109], [0.4875, 0.295892]], "deco": {"pole": [0.3333333333333333, 0.5773502692006554], "r": 0.1666666666571146, "u": [0.4999999999856721, -0.866025403792711], "eye": {"c": [0.39431409544261675, 0.5317284909373504], "r": 0.04999999999713438}, "pupil": {"c": [0.40864422246047244, 0.516907982862274], "r": 0.0216666666654249}, "gill": [[0.40855232867680696, 0.6304004808945741], [0.29583333333655715, 0.6423021744813862], [0.24144767132462586, 0.5531675709648392]], "spots": [{"c": [0.32208118551245196, 0.6901728942521007], "r": 0.018333333332282608}, {"c": [0.2510128252640597, 0.679933571688115], "r": 0.01333333333256917}]}, "edges": [{"edge": 0, "type": "mirror"}, {"edge": 1, "type": "mirror"}, {"edge": 2, "type": "mirror"}], "area": 0.14433756729740743, "seed": 7, "escher": {"no": 103, "title": "Fish", "year": "1959", "url": "https://mcescher.com/wp-content/uploads/2019/06/e103.jpg"}}, {"id": "p31m", "group": "p31m", "a1": [1.0, 0.0], "a2": [-0.5, 0.8660254037844386], "tile": [[0.0, 0.0], [0.016667, 0.0], [0.033335, 0.0], [0.050002, 0.0], [0.06667, 0.0], [0.083337, 0.0], [0.100004, 0.0], [0.116672, 0.0], [0.133339, 0.0], [0.150006, 0.0], [0.166674, 0.0], [0.183341, 0.0], [0.200009, 0.0], [0.216676, 0.0], [0.233343, 0.0], [0.250011, 0.0], [0.266678, 0.0], [0.283345, 0.0], [0.300013, 0.0], [0.31668, 0.0], [0.333348, 0.0], [0.350015, 0.0], [0.366682, 0.0], [0.38335, 0.0], [0.400017, 0.0], [0.416685, 0.0], [0.433352, 0.0], [0.450019, 0.0], [0.466687, 0.0], [0.483354, 0.0], [0.500021, 0.0], [0.516689, 0.0], [0.533356, 0.0], [0.550024, 0.0], [0.566691, 0.0], [0.583358, 0.0], [0.600026, 0.0], [0.616693, 0.0], [0.63336, 0.0], [0.650028, 0.0], [0.666695, 0.0], [0.662884, 0.007423], [0.65931, 0.014982], [0.656195, 0.022807], [0.653737, 0.031011], [0.652099, 0.039688], [0.651398, 0.048906], [0.651697, 0.058703], [0.653007, 0.069082], [0.655278, 0.080017], [0.658408, 0.091448], [0.662241, 0.103284], [0.666579, 0.115413], [0.671191, 0.127699], [0.675819, 0.139995], [0.680198, 0.152147], [0.68406, 0.164], [0.687153, 0.17541], [0.68925, 0.186244], [0.690158, 0.196392], [0.689728, 0.205767], [0.68786, 0.214312], [0.684505, 0.221998], [0.679668, 0.228828], [0.673403, 0.234833], [0.665811, 0.240073], [0.657031, 0.244626], [0.647231, 0.24859], [0.636602, 0.252076], [0.625343, 0.255197], [0.61365, 0.258069], [0.60171, 0.260798], [0.589691, 0.26348], [0.577729, 0.266196], [0.565931, 0.269007], [0.554365, 0.271952], [0.543064, 0.275049], [0.532023, 0.278297], [0.521209, 0.281676], [0.510561, 0.28515], [0.5, 0.288675], [0.491667, 0.281292], [0.483334, 0.273807], [0.475001, 0.266131], [0.466668, 0.258194], [0.458334, 0.249955], [0.450001, 0.241411], [0.441668, 0.232599], [0.433335, 0.223598], [0.425002, 0.21453], [0.416669, 0.205555], [0.408336, 0.196864], [0.400003, 0.188674], [0.39167, 0.181211], [0.383337, 0.174707], [0.375003, 0.16938], [0.36667, 0.165425], [0.358337, 0.163002], [0.350003, 0.162228], [0.341669, 0.163165], [0.333335, 0.16582], [0.325001, 0.170135], [0.316667, 0.175996], [0.308333, 0.183229], [0.299999, 0.191612], [0.291664, 0.200884], [0.28333, 0.210751], [0.274995, 0.220907], [0.266661, 0.231044], [0.258327, 0.240866], [0.249992, 0.250104], [0.241658, 0.258529], [0.233324, 0.265964], [0.224989, 0.272288], [0.216655, 0.277445], [0.208321, 0.281447], [0.199987, 0.284367], [0.191654, 0.286341], [0.18332, 0.287555], [0.174986, 0.288239], [0.166652, 0.28865], [0.162486, 0.281434], [0.15832, 0.274218], [0.154153, 0.267002], [0.149987, 0.259785], [0.145821, 0.252569], [0.141655, 0.245353], [0.137488, 0.238137], [0.133322, 0.23092], [0.129156, 0.223704], [0.124989, 0.216488], [0.120823, 0.209272], [0.116657, 0.202055], [0.11249, 0.194839], [0.108324, 0.187623], [0.104158, 0.180407], [0.099991, 0.17319], [0.095825, 0.165974], [0.091659, 0.158758], [0.087493, 0.151541], [0.083326, 0.144325], [0.07916, 0.137109], [0.074994, 0.129893], [0.070827, 0.122676], [0.066661, 0.11546], [0.062495, 0.108244], [0.058328, 0.101028], [0.054162, 0.093811], [0.049996, 0.086595], [0.045829, 0.079379], [0.041663, 0.072163], [0.037497, 0.064946], [0.03333, 0.05773], [0.029164, 0.050514], [0.024998, 0.043298], [0.020832, 0.036081], [0.016665, 0.028865], [0.012499, 0.021649], [0.008333, 0.014433], [0.004166, 0.007216]], "deco": {"pole": [0.531578845370809, 0.13338130488463906], "r": 0.1333812955342134, "u": [-0.9699332339537176, -0.24337116031297393], "eye": {"c": [0.4830860547321835, 0.09646084616943269], "r": 0.04001438866026402}, "pupil": {"c": [0.46853537539275747, 0.0886843783506545], "r": 0.017339568419447744}, "gill": [[0.5559010312991458, 0.06385033968800964], [0.5897957734677053, 0.1479888271808332], [0.5331308497077594, 0.20940450221291035]], "spots": [{"c": [0.6208779601774981, 0.11728335812132665], "r": 0.014671942508763474}, {"c": [0.6285928481264441, 0.17422552435721458], "r": 0.010670503642737073}]}, "edges": [{"edge": 0, "type": "mirror"}, {"edge": 1, "partner": 2, "type": "rot"}, {"edge": 3, "type": "mirror"}], "area": 0.14433756729740654, "seed": 3, "escher": {"no": 4, "title": "Figures", "year": "1936", "url": "https://mcescher.com/wp-content/uploads/2019/06/e4.jpg"}}, {"id": "p6", "group": "p6", "a1": [1.0, 0.0], "a2": [-0.5, 0.8660254037844386], "tile": [[0.175471, 0.277796], [0.183911, 0.268321], [0.192346, 0.259016], [0.200769, 0.250043], [0.209176, 0.241555], [0.217562, 0.233691], [0.225923, 0.226568], [0.234256, 0.220283], [0.242558, 0.214906], [0.250829, 0.210484], [0.259067, 0.207033], [0.267273, 0.204549], [0.275447, 0.202999], [0.283592, 0.202334], [0.291709, 0.202483], [0.299802, 0.203365], [0.307873, 0.204888], [0.315926, 0.206954], [0.323964, 0.209466], [0.33199, 0.212329], [0.340008, 0.215455], [0.348019, 0.218765], [0.356027, 0.222193], [0.364032, 0.225686], [0.372036, 0.229203], [0.380041, 0.232718], [0.388046, 0.236218], [0.396051, 0.239701], [0.404057, 0.243172], [0.412063, 0.246645], [0.420069, 0.250137], [0.428073, 0.253668], [0.436075, 0.257255], [0.444074, 0.260914], [0.452071, 0.264655], [0.460065, 0.268483], [0.468056, 0.272397], [0.476045, 0.276389], [0.484031, 0.280446], [0.492016, 0.284549], [0.5, 0.288675], [0.500418, 0.297653], [0.500858, 0.306619], [0.501338, 0.315564], [0.501875, 0.324478], [0.50248, 0.333356], [0.503162, 0.342193], [0.503921, 0.350989], [0.504752, 0.359746], [0.505647, 0.36847], [0.506591, 0.377167], [0.507569, 0.385846], [0.508564, 0.394515], [0.509561, 0.403184], [0.510548, 0.411859], [0.511519, 0.420541], [0.512477, 0.429231], [0.513433, 0.437922], [0.514411, 0.446601], [0.515446, 0.455249], [0.516585, 0.463843], [0.517887, 0.472349], [0.519421, 0.480731], [0.521265, 0.488948], [0.523502, 0.496956], [0.526219, 0.504707], [0.529501, 0.512157], [0.53343, 0.519261], [0.538079, 0.525982], [0.543508, 0.532286], [0.549763, 0.53815], [0.55687, 0.543559], [0.564835, 0.548511], [0.573643, 0.553013], [0.583252, 0.557087], [0.593601, 0.560766], [0.604605, 0.564097], [0.616159, 0.567133], [0.628141, 0.569941], [0.640417, 0.572593], [0.652842, 0.575165], [0.63606, 0.575626], [0.619564, 0.576236], [0.603626, 0.577141], [0.588504, 0.578474], [0.574423, 0.580354], [0.561574, 0.582881], [0.550105, 0.586134], [0.540118, 0.590165], [0.531667, 0.595004], [0.524757, 0.600652], [0.519348, 0.607089], [0.515356, 0.614271], [0.51266, 0.622134], [0.51111, 0.630599], [0.510531, 0.639574], [0.510735, 0.648961], [0.511529, 0.658657], [0.512722, 0.668563], [0.514132, 0.678584], [0.515594, 0.688632], [0.516968, 0.698633], [0.518136, 0.708526], [0.519012, 0.718266], [0.519537, 0.727821], [0.519683, 0.737177], [0.519446, 0.746332], [0.518846, 0.755296], [0.517922, 0.76409], [0.516725, 0.772741], [0.515317, 0.78128], [0.51376, 0.789741], [0.512115, 0.798156], [0.510438, 0.806554], [0.508773, 0.814959], [0.507154, 0.823388], [0.5056, 0.831851], [0.504119, 0.840352], [0.502703, 0.848887], [0.501338, 0.857449], [0.5, 0.866025], [0.493242, 0.860578], [0.48651, 0.855115], [0.479825, 0.849621], [0.473204, 0.844088], [0.466652, 0.838511], [0.460162, 0.832895], [0.453715, 0.827251], [0.447281, 0.821599], [0.440816, 0.815967], [0.434267, 0.810388], [0.427575, 0.804899], [0.420682, 0.799537], [0.413528, 0.79434], [0.406065, 0.789338], [0.398255, 0.784555], [0.39008, 0.780004], [0.381542, 0.775681], [0.372669, 0.77157], [0.363517, 0.767635], [0.35417, 0.763823], [0.344736, 0.760066], [0.335354, 0.756277], [0.326179, 0.752357], [0.317384, 0.748196], [0.309152, 0.74368], [0.301669, 0.738691], [0.295114, 0.733115], [0.289652, 0.726849], [0.285429, 0.719801], [0.282559, 0.711898], [0.281122, 0.70309], [0.281157, 0.693352], [0.282659, 0.682687], [0.285577, 0.671129], [0.289813, 0.658737], [0.295225, 0.645603], [0.301632, 0.63184], [0.308817, 0.617586], [0.316537, 0.602994], [0.324529, 0.58823], [0.330285, 0.575915], [0.335562, 0.563831], [0.339916, 0.552191], [0.342972, 0.541174], [0.344448, 0.530914], [0.34418, 0.521493], [0.342119, 0.512933], [0.338339, 0.505198], [0.333016, 0.498203], [0.326413, 0.491824], [0.318845, 0.485907], [0.310654, 0.48029], [0.302172, 0.474813], [0.293692, 0.469334], [0.285444, 0.463745], [0.277578, 0.457971], [0.270158, 0.451984], [0.263161, 0.445794], [0.256492, 0.439446], [0.25, 0.433013], [0.243508, 0.42658], [0.236839, 0.420232], [0.229842, 0.414041], [0.222422, 0.408054], [0.214556, 0.402281], [0.206308, 0.396691], [0.197828, 0.391213], [0.189346, 0.385735], [0.181155, 0.380118], [0.173587, 0.374202], [0.166984, 0.367822], [0.161661, 0.360828], [0.157881, 0.353093], [0.15582, 0.344532], [0.155552, 0.335111], [0.157028, 0.324852], [0.160084, 0.313835], [0.164438, 0.302194], [0.169715, 0.29011]], "deco": {"pole": [0.3776845670705651, 0.37165406007551], "r": 0.127624173954891, "u": [0.24017418920432734, 0.970729807330569], "eye": {"c": [0.3682584745586982, 0.42920463363941863], "r": 0.0382872521864673}, "pupil": {"c": [0.36822006076517816, 0.44499082538976775], "r": 0.016591142614135832}, "gill": [[0.30801324105876576, 0.38231824846218065], [0.3638911524444455, 0.3159041946682305], [0.4412254865818668, 0.3362121537300485]], "spots": [{"c": [0.3239915017767153, 0.3034257035039549], "r": 0.01403865913503801}, {"c": [0.36864261249389896, 0.271342716135927], "r": 0.010209933916391281}]}, "edges": [{"edge": 0, "partner": 1, "type": "rot"}, {"edge": 2, "partner": 3, "type": "rot"}, {"edge": 4, "type": "half-turn"}], "area": 0.14433756729741276, "seed": 2, "escher": {"no": 70, "title": "Butterflies", "year": "1948", "url": "https://mcescher.com/wp-content/uploads/2019/06/e70.jpg"}}, {"id": "p6m", "group": "p6m", "a1": [1.0, 0.0], "a2": [-0.5, 0.8660254037844386], "tile": [[-0.0, 0.0], [0.0125, 0.007217], [0.025, 0.014434], [0.0375, 0.021651], [0.05, 0.028868], [0.0625, 0.036084], [0.075, 0.043301], [0.0875, 0.050518], [0.1, 0.057735], [0.1125, 0.064952], [0.125, 0.072169], [0.1375, 0.079386], [0.15, 0.086603], [0.1625, 0.093819], [0.175, 0.101036], [0.1875, 0.108253], [0.2, 0.11547], [0.2125, 0.122687], [0.225, 0.129904], [0.2375, 0.137121], [0.25, 0.144338], [0.2625, 0.151554], [0.275, 0.158771], [0.2875, 0.165988], [0.3, 0.173205], [0.3125, 0.180422], [0.325, 0.187639], [0.3375, 0.194856], [0.35, 0.202073], [0.3625, 0.209289], [0.375, 0.216506], [0.3875, 0.223723], [0.4, 0.23094], [0.4125, 0.238157], [0.425, 0.245374], [0.4375, 0.252591], [0.45, 0.259808], [0.4625, 0.267024], [0.475, 0.274241], [0.4875, 0.281458], [0.5, 0.288675], [0.49375, 0.292284], [0.4875, 0.295892], [0.48125, 0.2995], [0.475, 0.303109], [0.46875, 0.306717], [0.4625, 0.310326], [0.45625, 0.313934], [0.45, 0.317543], [0.44375, 0.321151], [0.4375, 0.32476], [0.43125, 0.328368], [0.425, 0.331976], [0.41875, 0.335585], [0.4125, 0.339193], [0.40625, 0.342802], [0.4, 0.34641], [0.39375, 0.350019], [0.3875, 0.353627], [0.38125, 0.357235], [0.375, 0.360844], [0.36875, 0.364452], [0.3625, 0.368061], [0.35625, 0.371669], [0.35, 0.375278], [0.34375, 0.378886], [0.3375, 0.382495], [0.33125, 0.386103], [0.325, 0.389711], [0.31875, 0.39332], [0.3125, 0.396928], [0.30625, 0.400537], [0.3, 0.404145], [0.29375, 0.407754], [0.2875, 0.411362], [0.28125, 0.414971], [0.275, 0.418579], [0.26875, 0.422187], [0.2625, 0.425796], [0.25625, 0.429404], [0.25, 0.433013], [0.24375, 0.422187], [0.2375, 0.411362], [0.23125, 0.400537], [0.225, 0.389711], [0.21875, 0.378886], [0.2125, 0.368061], [0.20625, 0.357235], [0.2, 0.34641], [0.19375, 0.335585], [0.1875, 0.32476], [0.18125, 0.313934], [0.175, 0.303109], [0.16875, 0.292284], [0.1625, 0.281458], [0.15625, 0.270633], [0.15, 0.259808], [0.14375, 0.248982], [0.1375, 0.238157], [0.13125, 0.227332], [0.125, 0.216506], [0.11875, 0.205681], [0.1125, 0.194856], [0.10625, 0.18403], [0.1, 0.173205], [0.09375, 0.16238], [0.0875, 0.151554], [0.08125, 0.140729], [0.075, 0.129904], [0.06875, 0.119078], [0.0625, 0.108253], [0.05625, 0.097428], [0.05, 0.086603], [0.04375, 0.075777], [0.0375, 0.064952], [0.03125, 0.054127], [0.025, 0.043301], [0.01875, 0.032476], [0.0125, 0.021651], [0.00625, 0.010825]], "deco": {"pole": [0.2886751346958753, 0.2886751345948133], "r": 0.10566243265206186, "u": [-0.7071067813103229, -0.7071067810627721], "eye": {"c": [0.2707436252532427, 0.24384636101098822], "r": 0.03169872979561856}, "pupil": {"c": [0.2640193092132363, 0.2326391676154243], "r": 0.013736116244768042}, "gill": [[0.3335039082763, 0.25131782326449636], [0.3222967148919835, 0.32229671477915095], [0.2587892856470543, 0.34097537045150256]], "spots": [{"c": [0.35591829508076783, 0.31407810628232224], "r": 0.011622867591726805}, {"c": [0.33798678565330614, 0.3559182949666274], "r": 0.008452994612164949}]}, "edges": [{"edge": 0, "type": "mirror"}, {"edge": 1, "type": "mirror"}, {"edge": 2, "type": "mirror"}], "area": 0.07216878364870372, "seed": 7, "escher": null}];
+  const SOURCES = {
+ "based": "These tilings are based on M. C. Escher’s periodic drawings, his “regular divisions of the plane.” They follow his method for designing a tile that fills the plane under a symmetry group, and each one names and links to a drawing of his with the same group (for the 14 groups he used among the drawings checked). The tiles, faces and colors are new drawings made for this page, not copies of his work.",
+ "method": "Each tile is a fundamental domain of its group: the points closer to one chosen point than to any of its images (a Dirichlet domain). The group pairs its edges, and each pair is bent the same way: an edge and its partner under a translation, glide reflection or rotation get matching curves, an edge through a half-turn center gets an S-curve, and an edge on a mirror stays straight. This is how Escher designed his tiles. The images of the tile under the group then tile the plane, which was checked by computer; the shapes, eyes and colors here are generated, not copied from any artwork.",
+ "escher": "M. C. Escher’s periodic drawings are © The M.C. Escher Company B.V., Baarn, the Netherlands; the links open them in the company’s own gallery, <a href=\"https://mcescher.com/gallery/symmetry/\" target=\"_blank\" rel=\"noopener\">mcescher.com/gallery/symmetry</a>. The group named for each drawing was found by fitting the groups to the drawing.",
+ "reading": "Section 11 of P. Etingof, <cite>Groups around us</cite>, <a href=\"https://math.mit.edu/~etingof/groups.pdf\" target=\"_blank\" rel=\"noopener\">math.mit.edu/~etingof/groups.pdf</a> (wallpaper groups); K. Conrad, <cite>Isometries of ℝ<sup>n</sup></cite>, <a href=\"https://kconrad.math.uconn.edu/blurbs/grouptheory/isometryRn.pdf\" target=\"_blank\" rel=\"noopener\">kconrad.math.uconn.edu</a>; the <cite>EscherMath</cite> wiki of Saint Louis University, <a href=\"https://eschermath.org/wiki/Wallpaper_Patterns.html\" target=\"_blank\" rel=\"noopener\">Wallpaper Patterns</a>; D. Schattschneider, <cite>The mathematical side of M. C. Escher</cite>, Notices of the AMS 57 (2010), 706–718, <a href=\"https://www.ams.org/notices/201006/rtx100600706p.pdf\" target=\"_blank\" rel=\"noopener\">ams.org</a>."
+};
+
+  const PI = Math.PI, MINUS = "−";
+  const $ = (id) => document.getElementById(id);
+  const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+  const ease = (s) => (s <= 0 ? 0 : s >= 1 ? 1 : s < 0.5 ? 4 * s * s * s : 1 - Math.pow(-2 * s + 2, 3) / 2);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const plain = (s) => String(s).replace(/<[^>]+>/g, "");
+  const SUB = { 1: "₁", 2: "₂" };
+  const deg = (a) => Math.round(Math.abs(a) * 180 / PI);
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (err) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (err) { /* storage unavailable */ } },
+  };
+
+  // ---------- affine maps of the plane ----------
+  // [a, b, c, d, e, f] sends (x, y) to (a x + c y + e, b x + d y + f), as in canvas.
+  const AID = [1, 0, 0, 1, 0, 0];
+  const affMul = (A, B) => [A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1], A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3],
+    A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5]];
+  const affAp = (A, p) => [A[0] * p[0] + A[2] * p[1] + A[4], A[1] * p[0] + A[3] * p[1] + A[5]];
+  const affT = (x, y) => [1, 0, 0, 1, x, y];
+  function affRotAbout(c, t) {
+    const co = Math.cos(t), si = Math.sin(t);
+    return [co, si, -si, co, c[0] - co * c[0] + si * c[1], c[1] - si * c[0] - co * c[1]];
+  }
+  // Squash the plane across the line through q in direction u: the component across the line is multiplied by cf.
+  // cf = −1 is the reflection; in between, the plane is seen edge-on as it turns over.
+  function affFlip(q, u, cf) {
+    const [ux, uy] = u, k = 1 - cf;
+    const a = ux * ux + cf * uy * uy, d = uy * uy + cf * ux * ux, o = ux * uy * k;
+    return [a, o, o, d, q[0] - a * q[0] - o * q[1], q[1] - o * q[0] - d * q[1]];
+  }
+  // A world isometry x ↦ A x + b (A row-major) as an affine map.
+  const affOfWorld = (w) => [w.A[0], w.A[2], w.A[1], w.A[3], w.b[0], w.b[1]];
+  const GLIDE_A = 0.46, GLIDE_B = 0.54;
+  function animAff(an, p) {
+    const cfOf = (s) => Math.cos(PI * ease(s));
+    switch (an.kind) {
+      case "trans": { const s = ease(p); return affT(an.vec[0] * s, an.vec[1] * s); }
+      case "rot": return affRotAbout(an.c, an.ang * ease(p));
+      case "refl": return affFlip(an.q, an.u, cfOf(p));
+      case "glide": {
+        if (p <= GLIDE_A) return affFlip(an.q, an.u, cfOf(p / GLIDE_A));
+        const s = p < GLIDE_B ? 0 : ease((p - GLIDE_B) / (1 - GLIDE_B));
+        return affMul(affT(an.v[0] * s, an.v[1] * s), affFlip(an.q, an.u, -1));
+      }
+      default: return AID;
+    }
+  }
+
+  // ---------- the tilings ----------
+  const FAMILIES = [
+    { name: "Rotations only", groups: ["p1", "p2", "p3", "p4", "p6"] },
+    { name: "Glide reflections, no mirrors", groups: ["pg", "pgg"] },
+    { name: "Mirrors", groups: ["pm", "cm", "pmm", "pmg", "cmm", "p4m", "p4g", "p3m1", "p31m", "p6m"] },
+  ];
+  const ORDER = FAMILIES.flatMap((f) => f.groups);
+  DATA.sort((a, b) => ORDER.indexOf(a.group) - ORDER.indexOf(b.group));
+  // Colors: the color of a tile is its linear part λ(g) = R_θ S^ε, where S is the reflection in the line of a₁.
+  // The hue gives θ and a lighter tint means ε = 1 (a mirror image).
+  const HUES = { 1: ["#E07A2E"], 2: ["#E07A2E", "#2E8FA3"], 3: ["#E07A2E", "#3A9E5F", "#5B6FD6"],
+    4: ["#E07A2E", "#B9B33A", "#2E8FA3", "#9B5BC9"], 6: ["#E0622E", "#E0B12E", "#7BB33A", "#2E9E9E", "#4A6FD6", "#A65BC9"] };
+  function tint(h, f) { const [r, g, b] = hexRgb(h); return "#" + [r, g, b].map((c) => Math.round(c + (255 - c) * f).toString(16).padStart(2, "0")).join(""); }
+  function lambdaColors(d) {
+    const lin = d.grp.ops.map((o) => WP.toWorld({ m: o.m, t: [0, 0] }, d.B).A);
+    const nrot = new Set(lin.filter((A) => WP.mdet(A) > 0).map((A) => Math.round(Math.atan2(A[2], A[0]) * 1e6))).size;
+    const step = 2 * PI / nrot, keys = [], palette = [], names = [];
+    const table = lin.map((A) => {
+      const e = WP.mdet(A) > 0 ? 0 : 1, R = e ? [A[0], -A[1], A[2], -A[3]] : A;
+      const th = ((Math.atan2(R[2], R[0]) % (2 * PI)) + 2 * PI) % (2 * PI);
+      const h = Math.floor(th / step + 1e-6) % nrot, key = h + ":" + e;
+      let idx = keys.indexOf(key);
+      if (idx < 0) {
+        idx = keys.length; keys.push(key);
+        palette.push(e ? tint(HUES[nrot][h], 0.5) : HUES[nrot][h]);
+        const dg = Math.round(th * 180 / PI);
+        names.push(e ? `mirror image${dg ? `, turned ${dg}°` : ""}` : dg ? `turned ${dg}°` : "upright");
+      }
+      return [[idx]];
+    });
+    return { N: 1, table, palette, names };
+  }
+
+  function prepare(d) {
+    if (d.prepared) return d;
+    d.grp = WP.GROUPS[d.group];
+    d.B = WP.basisOf(d);
+    d.L = Math.min(Math.hypot(...d.a1), Math.hypot(...d.a2));
+    d.centerW = WP.worldOf(d.B, [0.5, 0.5]);
+    d.centerF = [0.5, 0.5];
+    // the default view: about six tiles across
+    const span = 6.2 * Math.sqrt(d.area);
+    d.regionW = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => [d.centerW[0] + x * span / 2, d.centerW[1] + y * span / 2]);
+    d.cls = WP.classes(d.grp, d.B, d.centerF);
+    d.cls.centers.forEach((c, i) => { c.letter = "ABCD"[i]; c.ci = i; });
+    d.clsIndex = new Map(d.cls.centers.map((c) => [c.cls, c.ci]));
+    d.colors = lambdaColors(d);
+    // the tile (one fundamental domain) and its decoration, as paths in world coordinates
+    const pts = d.tile;
+    d.tileC = [pts.reduce((s, p) => s + p[0], 0) / pts.length, pts.reduce((s, p) => s + p[1], 0) / pts.length];
+    d.tileR = Math.max(...pts.map((p) => Math.hypot(p[0] - d.tileC[0], p[1] - d.tileC[1])));
+    d.tilePath = new Path2D();
+    pts.forEach((p, i) => (i ? d.tilePath.lineTo(p[0], p[1]) : d.tilePath.moveTo(p[0], p[1])));
+    d.tilePath.closePath();
+    const dc = d.deco, circ = (c, r) => { const q = new Path2D(); q.arc(c[0], c[1], r, 0, 2 * PI); return q; };
+    d.eyePath = circ(dc.eye.c, dc.eye.r);
+    d.pupilPath = circ(dc.pupil.c, dc.pupil.r);
+    d.spotPath = new Path2D();
+    dc.spots.forEach((sp) => d.spotPath.addPath(circ(sp.c, sp.r)));
+    const [g0, gm, g1] = dc.gill, ctl = [2 * gm[0] - (g0[0] + g1[0]) / 2, 2 * gm[1] - (g0[1] + g1[1]) / 2];
+    d.gillPath = new Path2D(); d.gillPath.moveTo(g0[0], g0[1]); d.gillPath.quadraticCurveTo(ctl[0], ctl[1], g1[0], g1[1]);
+    d.flagW = [dc.pole[0] - 0.35 * dc.r * dc.u[0], dc.pole[1] - 0.35 * dc.r * dc.u[1]];
+    d.flagW = [d.flagW[0] - 0.25 * dc.r * -dc.u[1], d.flagW[1] - 0.25 * dc.r * dc.u[0]];
+    d.flagSize = 0.9 * dc.r;
+    d.EL = buildMoves(d);
+    d.prepared = true;
+    return d;
+  }
+
+  // ---------- the moves of a drawing ----------
+  function lineEq(l) {
+    // the line through q in direction (p, r), in fractional coordinates: r x − p y = r qx − p qy
+    let [p, r] = l.d, c = r * l.q[0] - p * l.q[1];
+    // write the equation with a positive leading coefficient
+    if (r < 0 || (r === 0 && -p < 0)) { p = -p; r = -r; c = -c; }
+    const lhs = WP.linStr(r, -p, 0);
+    return `${lhs} = ${WP.fracStr(c)}`;
+  }
+  function vecStr(v) {
+    // a fractional vector as a combination of a₁ and a₂
+    const parts = [];
+    [[v[0], "a₁"], [v[1], "a₂"]].forEach(([c, n]) => {
+      if (WP.near(c, 0)) return;
+      const ac = Math.abs(c), cs = WP.near(ac, 1) ? "" : WP.coefStr(ac);
+      parts.push([c < 0 ? -1 : 1, cs + n]);
+    });
+    if (!parts.length) return "0";
+    return parts.map(([s, p], i) => (i === 0 ? (s < 0 ? MINUS : "") + p : (s < 0 ? " " + MINUS + " " : " + ") + p)).join("");
+  }
+  function mkMove(d, kind, g, extra) {
+    const an = WP.classify(g, d.B);
+    return Object.assign({ kind, g, an, ghost: !WP.inGroup(g, d.grp) }, extra);
+  }
+  function buildMoves(d) {
+    const B = d.B, EL = [];
+    const add = (m) => { m.idx = EL.length; EL.push(m); return m; };
+    // translations
+    add(mkMove(d, "trans", WP.trans([1, 0]), { block: "Translations", chip: "a₁", name: "Translation by a₁" }));
+    add(mkMove(d, "trans", WP.trans([0, 1]), { block: "Translations", chip: "a₂", name: "Translation by a₂" }));
+    if (d.grp.center) add(mkMove(d, "trans", WP.trans([0.5, 0.5]), { block: "Translations", chip: "½a₁ + ½a₂", name: "Translation by ½a₁ + ½a₂" }));
+    // rotations, one for each class of centers
+    for (const c of d.cls.centers) {
+      const ang = 2 * PI / c.n, g = WP.fracRot(B, WP.worldOf(B, c.c), ang);
+      add(mkMove(d, "rot", g, { block: "Rotations", chip: `${360 / c.n}° at ${c.letter}`, center: c, name: `Rotation by ${360 / c.n}° about ${c.letter}`, note: d.notes && d.notes[c.cls] }));
+    }
+    // reflections and glide reflections
+    d.cls.mirrors.forEach((l, i) => {
+      const dw = WP.worldOf(B, l.d), n = Math.hypot(...dw), u = [dw[0] / n, dw[1] / n];
+      const g = WP.fracRefl(B, WP.worldOf(B, l.q), u);
+      add(mkMove(d, "refl", g, { block: "Reflections", chip: `in ${lineEq(l)}`, line: l, name: `Reflection in the line ${lineEq(l)}`, note: d.notes && d.notes["m" + l.cls] }));
+    });
+    d.cls.glides.forEach((l) => {
+      const dw = WP.worldOf(B, l.d), n = Math.hypot(...dw), u = [dw[0] / n, dw[1] / n];
+      const g = WP.fracRefl(B, WP.worldOf(B, l.q), u, WP.worldOf(B, l.v));
+      add(mkMove(d, "glide", g, { block: "Glide reflections", chip: `along ${lineEq(l)}`, line: l, name: `Glide reflection along ${lineEq(l)}`, note: d.notes && d.notes["g" + l.cls] }));
+    });
+    // isometries that are not symmetries
+    const ghosts = [];
+    const top = d.cls.centers[0];
+    if (top) ghosts.push({ g: WP.fracRot(B, WP.worldOf(B, top.c), PI / top.n), chip: `${180 / top.n}° at ${top.letter}`, name: `Rotation by ${180 / top.n}° about ${top.letter}`, kind: "rot" });
+    else ghosts.push({ g: WP.fracRot(B, d.centerW, PI), chip: "180°", name: "A half-turn", kind: "rot" });
+    ghosts.push({ g: WP.trans([0.5, 0]), chip: "½a₁", name: "Translation by ½a₁", kind: "trans" });
+    {
+      // a reflection that is not a symmetry: in the line through the first center (or the middle of the sheet) at a
+      // generic angle to a₁ (22.5°, or 15° on a hexagonal lattice), far from every mirror and glide direction
+      const p0 = top ? WP.worldOf(B, top.c) : d.centerW, a1w = WP.worldOf(B, [1, 0]);
+      const th = Math.atan2(a1w[1], a1w[0]) + (d.grp.lat === "hexagonal" ? PI / 12 : PI / 8);
+      ghosts.push({ g: WP.fracRefl(B, p0, [Math.cos(th), Math.sin(th)]), chip: "reflection", name: "A reflection that is not a symmetry", kind: "refl" });
+    }
+    for (const gh of ghosts) {
+      if (WP.inGroup(gh.g, d.grp)) continue;
+      add(mkMove(d, gh.kind, gh.g, { block: "Not symmetries", chip: gh.chip, name: gh.name }));
+    }
+    return EL;
+  }
+
+  // ---------- state ----------
+  let di = 0, D = null;
+  let base = WP.ID, hist = [];
+  let cur = null;               // the move in progress: {el, t, dir, playing, histAfter, kind}
+  let last = null;              // the last move shown (for the readout and the drawing of its geometry)
+  const queue = [];
+  const show = { lattice: true, centers: true, mirrors: true, glides: false };
+  let trace = "outline", speed = "normal", timeScale = 1;
+  const SPEEDS = { slow: 1.8, normal: 1, fast: 0.55 };
+  const view = { x: 0, y: 0, z: 1 };
+  let touring = false, tourTok = 0, tourInfo = null;
+  let reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const waiters = [];
+
+  const progress = (c) => (!c ? 0 : !c.el.ghost ? c.t : reduced ? (c.t > 0 && c.t < 2 / 3 ? 1 : 0)
+    : c.t < 1 / 3 ? 3 * c.t : c.t < 2 / 3 ? 1 : 3 - 3 * c.t);
+  function baseDuration(an) {
+    switch (an.kind) {
+      case "id": return 0;
+      case "trans": return 700 + 600 * Math.min(2.5, Math.hypot(an.vec[0], an.vec[1]) / D.L);
+      case "rot": return 760 + 640 * Math.abs(an.ang) / (PI / 2);
+      case "refl": return 1500;
+      default: return 2900;
+    }
+  }
+  const durationOf = (el) => (reduced ? (el.ghost ? 1800 : 0) : baseDuration(el.an) * (el.ghost ? 3 : 1)) * SPEEDS[speed] * timeScale;
+  const dwell = (ms) => ms * (reduced ? 1.6 : 1) * SPEEDS[speed] * timeScale;
+
+  // The settled position, or null while a move is part way through (or a non-symmetry is out).
+  function posState() {
+    const p = progress(cur);
+    if (!cur) return { g: base, h: hist };
+    if (cur.el.ghost) return p <= 0 ? { g: base, h: hist } : null;
+    if (cur.dir > 0) { if (p <= 0) return { g: base, h: hist }; if (p >= 1) return { g: WP.comp(cur.el.g, base), h: cur.histAfter }; }
+    else { if (p >= 1) return { g: WP.comp(cur.el.g, base), h: hist }; if (p <= 0) return { g: base, h: cur.histAfter }; }
+    return null;
+  }
+  function finalize() {
+    if (!cur) return;
+    if (cur.el.ghost) { cur = null; return; }
+    if (cur.t > 0 && cur.t < 1) cur.t = (cur.dir > 0 ? cur.t >= 0.5 : cur.t > 0.5) ? 1 : 0;
+    if (cur.t >= 1) base = WP.comp(cur.el.g, base);
+    hist = cur.t >= 1 ? (cur.dir > 0 ? cur.histAfter : hist) : (cur.dir > 0 ? hist : cur.histAfter);
+    cur = null;
+  }
+  function startEl(el, opts) {
+    finalize();
+    opts = opts || {};
+    last = el;
+    cur = { el, t: 0, dir: 1, playing: true, kind: opts.kind || "move", histAfter: el.ghost ? hist : opts.kind === "reset" ? [] : hist.concat(el.idx) };
+    renderAll();
+    kick();
+  }
+  function settle() {
+    cur.playing = false;
+    renderAll();
+    waiters.splice(0).forEach((f) => f());
+    pump();
+  }
+  function pump() {
+    if (cur && cur.playing) return;
+    if (cur && cur.t > 0 && cur.t < 1) { if (queue.length) { cur.playing = true; kick(); } return; }
+    const next = queue.shift();
+    if (!next) return;
+    if (next === "undo") doUndo(); else if (next === "reset") doReset(); else startEl(next);
+  }
+  function request(el) {
+    stopTour();
+    if (queue.length >= 4) return;
+    queue.push(el);
+    pump();
+  }
+  function playPause() {
+    if (!cur) { if (last) request(last); return; }
+    if (cur.playing) { cur.playing = false; renderAll(); return; }
+    if ((cur.dir > 0 && cur.t >= 1) || (cur.dir < 0 && cur.t <= 0)) { request(cur.el); return; }
+    cur.playing = true; renderAll(); kick();
+  }
+  function undo() { stopTour(); queue.push("undo"); pump(); }
+  function doUndo() {
+    finalize();
+    if (!hist.length) { renderAll(); pump(); return; }
+    const idx = hist[hist.length - 1], el = D.EL[idx];
+    base = WP.comp(WP.inv(el.g), base);
+    last = el;
+    cur = { el, t: 1, dir: -1, playing: true, kind: "undo", histAfter: hist.slice(0, -1) };
+    renderAll();
+    kick();
+  }
+  function reset() { stopTour(); queue.length = 0; queue.push("reset"); pump(); }
+  // Reset animates the single isometry that takes the tracing home: base⁻¹, whatever kind it is.
+  function doReset() {
+    finalize();
+    const back = WP.inv(base);
+    if (WP.near(WP.mdet(back.m), 1) && back.m[0] === 1 && back.m[3] === 1 && back.m[1] === 0 && back.m[2] === 0 && WP.near(back.t[0], 0) && WP.near(back.t[1], 0)) { hist = []; renderAll(); pump(); return; }
+    const el = mkMove(D, "reset", back, { block: "Reset", chip: "home", name: "Back home in one move", idx: -1 });
+    el.ghost = false;
+    last = el;
+    cur = { el, t: 0, dir: 1, playing: true, kind: "reset", histAfter: [] };
+    renderAll();
+    kick();
+  }
+  function stopTour() { if (touring) { touring = false; tourTok++; tourInfo = null; renderAll(); } }
+  const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+  const settled = () => new Promise((res) => { if (!cur || !cur.playing) res(); else waiters.push(res); });
+  async function tour() {
+    if (touring) { stopTour(); return; }
+    touring = true;
+    const tok = ++tourTok;
+    const list = D.EL.filter((e) => !e.ghost);
+    queue.length = 0;
+    for (let i = 0; i < list.length; i++) {
+      if (tok !== tourTok) return;
+      finalize();
+      base = WP.ID; hist = [];
+      tourInfo = { i, n: list.length };
+      startEl(list[i]);
+      await settled();
+      if (tok !== tourTok) return;
+      await wait(dwell(900));
+    }
+    if (tok !== tourTok) return;
+    touring = false; tourInfo = null;
+    renderAll();
+  }
+
+  function select(i, quiet) {
+    stopTour();
+    queue.length = 0;
+    cur = null; last = null;
+    di = (i + DATA.length) % DATA.length;
+    D = prepare(DATA[di]);
+    base = WP.ID; hist = [];
+    elCache = null;
+    resetView(true);
+    if (!quiet) {
+      try { history.replaceState(null, "", "#" + D.id); } catch (err) { /* file: URLs in some browsers */ }
+      store.set("wpt.tiling", D.id);
+    }
+    renderCatalog();
+    renderDrawing();
+    renderAll();
+    kick();
+  }
+
+  // ---------- the tiling ----------
+  // Calls f(G, k) for each tile g(T) (g = T_(i,j) ∘ ops[k], G its world affine map) such that A(g(T)) meets the view.
+  function forTiles(A, f) {
+    const Ai = affInv(A), B = D.B, Bi = WP.minv(B);
+    const cs = [[0, 0], [W_, 0], [W_, H_], [0, H_]].map(([x, y]) => affAp(Ai, toW(x, y)));
+    const R = D.tileR * 1.05;
+    for (let k = 0; k < D.grp.ops.length; k++) {
+      const o = D.grp.ops[k], ck = WP.toWorld({ m: o.m, t: o.t }, B), c = [ck.A[0] * D.tileC[0] + ck.A[1] * D.tileC[1] + ck.b[0], ck.A[2] * D.tileC[0] + ck.A[3] * D.tileC[1] + ck.b[1]];
+      const fr = cs.map((p) => WP.mvec(Bi, [p[0] - c[0], p[1] - c[1]]));
+      const rf = [R * Math.hypot(Bi[0], Bi[1]), R * Math.hypot(Bi[2], Bi[3])];
+      const i0 = Math.floor(Math.min(...fr.map((q) => q[0])) - rf[0]), i1 = Math.ceil(Math.max(...fr.map((q) => q[0])) + rf[0]);
+      const j0 = Math.floor(Math.min(...fr.map((q) => q[1])) - rf[1]), j1 = Math.ceil(Math.max(...fr.map((q) => q[1])) + rf[1]);
+      for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+        const G = affOfWorld(WP.toWorld({ m: o.m, t: [o.t[0] + i, o.t[1] + j] }, B));
+        f(G, k);
+      }
+    }
+  }
+  function affInv(A) {
+    const det = A[0] * A[3] - A[1] * A[2];
+    const a = A[3] / det, b = -A[1] / det, c = -A[2] / det, d = A[0] / det;
+    return [a, b, c, d, -(a * A[4] + c * A[5]), -(b * A[4] + d * A[5])];
+  }
+  function drawTiles(A, T, mode) {
+    const SA = screenAff(), ink = "#1C1919";
+    forTiles(A, (G, k) => {
+      setT(affMul(SA, affMul(A, G)));
+      if (mode === "fill" || mode === "copy") {
+        ctx.globalAlpha = mode === "copy" ? 0.55 : 1;
+        ctx.fillStyle = D.colors.palette[D.colors.table[k][0][0]]; ctx.fill(D.tilePath);
+        ctx.fillStyle = "#FFFFFF"; ctx.fill(D.eyePath);
+        ctx.fillStyle = ink; ctx.fill(D.pupilPath); ctx.fill(D.spotPath);
+        ctx.lineWidth = 1.3 / scale; ctx.strokeStyle = ink; ctx.stroke(D.eyePath);
+        ctx.lineWidth = 2 / scale; ctx.lineCap = "round"; ctx.stroke(D.gillPath);
+        ctx.lineWidth = 1.7 / scale; ctx.lineJoin = "round"; ctx.stroke(D.tilePath);
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.lineJoin = "round"; ctx.lineCap = "round";
+        ctx.strokeStyle = T.trace; ctx.lineWidth = 3 / scale; ctx.stroke(D.tilePath);
+        ctx.lineWidth = 2 / scale; ctx.stroke(D.eyePath); ctx.stroke(D.gillPath);
+      }
+    });
+  }
+
+  // ---------- drawing ----------
+  const cv = $("cv"), ctx = cv.getContext("2d");
+  let W_ = 1, H_ = 1, DPR = 1, scale = 1, raf = 0, lastTs = 0;
+  let THEME = null;
+  function hexRgb(h) {
+    h = h.replace("#", "").trim();
+    if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+    const n = parseInt(h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function theme() {
+    const cs = getComputedStyle(document.documentElement), v = (k) => cs.getPropertyValue(k).trim();
+    return { ink: v("--ink"), muted: v("--muted"), rule: v("--rule"), stage: v("--stage"), surface: v("--surface"), accent: v("--accent-text"),
+      trace: v("--trace"), mirror: v("--mirror"), glide: v("--glide"), lat: v("--lat"), cls: [v("--c0"), v("--c1"), v("--c2"), v("--c3")],
+      fontUi: v("--font-ui"), fontMath: v("--font-math") };
+  }
+  const toS = (p) => [W_ / 2 + scale * (p[0] - view.x), H_ / 2 - scale * (p[1] - view.y)];
+  const toW = (sx, sy) => [view.x + (sx - W_ / 2) / scale, view.y - (sy - H_ / 2) / scale];
+  const screenAff = () => [scale, 0, 0, -scale, W_ / 2 - scale * view.x, H_ / 2 + scale * view.y];
+  function baseScale() {
+    if (!D) return 1;
+    const xs = D.regionW.map((p) => p[0]), ys = D.regionW.map((p) => p[1]);
+    const bw = Math.max(...xs) - Math.min(...xs), bh = Math.max(...ys) - Math.min(...ys);
+    return Math.min(W_ / bw, H_ / bh) * 0.94;
+  }
+  function resetView(quiet) {
+    if (!D) return;
+    view.x = D.centerW[0]; view.y = D.centerW[1]; view.z = 1;
+    scale = baseScale();
+    if (!quiet) kick();
+  }
+  function resize() {
+    const r = cv.getBoundingClientRect();
+    DPR = window.devicePixelRatio || 1;
+    W_ = Math.max(1, r.width); H_ = Math.max(1, r.height);
+    cv.width = Math.round(W_ * DPR); cv.height = Math.round(H_ * DPR);
+    scale = baseScale() * view.z;
+    draw();
+  }
+  function zoomBy(f, sx, sy) {
+    const z2 = clamp(view.z * f, 0.5, 4);
+    if (sx === undefined) { sx = W_ / 2; sy = H_ / 2; }
+    const before = toW(sx, sy);
+    view.z = z2; scale = baseScale() * view.z;
+    const after = toW(sx, sy);
+    view.x += before[0] - after[0]; view.y += before[1] - after[1];
+    hideHint(); kick();
+  }
+  // Where the tracing is: the settled position, then the move in progress.
+  function tracingAff() {
+    const G = affOfWorld(WP.toWorld(base, D.B));
+    return cur ? affMul(animAff(cur.el.an, progress(cur)), G) : G;
+  }
+  function setT(A) { const t = affMul([DPR, 0, 0, DPR, 0, 0], A); ctx.setTransform(t[0], t[1], t[2], t[3], t[4], t[5]); }
+  function lineAcross(q, u, color, width, dash) {
+    // a line through world point q, direction u, long enough to cross the view
+    const R = 4 * Math.hypot(W_, H_) / scale;
+    const a = toS([q[0] - R * u[0], q[1] - R * u[1]]), b = toS([q[0] + R * u[0], q[1] + R * u[1]]);
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []); ctx.stroke(); ctx.setLineDash([]);
+  }
+  function arrow(p, q, color, width, dashed, halo) {
+    const a = toS(p), b = toS(q), dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
+    if (len < 2) return;
+    const ux = dx / len, uy = dy / len, hl = Math.min(13, 0.4 * len);
+    if (halo) {
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0] - ux * hl * 0.6, b[1] - uy * hl * 0.6);
+      ctx.strokeStyle = halo; ctx.lineWidth = width + 3; ctx.stroke();
+    }
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0] - ux * hl * 0.6, b[1] - uy * hl * 0.6);
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dashed ? [6, 5] : []); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(b[0], b[1]);
+    ctx.lineTo(b[0] - ux * hl - uy * hl * 0.45, b[1] - uy * hl + ux * hl * 0.45);
+    ctx.lineTo(b[0] - ux * hl + uy * hl * 0.45, b[1] - uy * hl - ux * hl * 0.45);
+    ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+  }
+  function centerSymbol(p, n, fill, r, ring, rot) {
+    const s = toS(p);
+    ctx.beginPath();
+    if (n === 2) ctx.ellipse(s[0], s[1], r * 0.55, r, rot || 0, 0, 2 * PI);
+    else for (let j = 0; j < n; j++) {
+      const a = (rot || 0) - PI / 2 + 2 * PI * j / n, x = s[0] + r * Math.cos(a), y = s[1] + r * Math.sin(a);
+      if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.lineWidth = 1.6; ctx.strokeStyle = ring; ctx.stroke();
+  }
+  // the symmetry elements meeting the view (cached by the integer box of the view in lattice coordinates)
+  let elCache = null;
+  function viewFracBox() {
+    const Bi = WP.minv(D.B), fr = [[0, 0], [W_, 0], [W_, H_], [0, H_]].map(([x, y]) => WP.mvec(Bi, toW(x, y)));
+    return [[Math.floor(Math.min(...fr.map((q) => q[0]))), Math.floor(Math.min(...fr.map((q) => q[1])))],
+      [Math.ceil(Math.max(...fr.map((q) => q[0]))), Math.ceil(Math.max(...fr.map((q) => q[1])))]];
+  }
+  function viewElements() {
+    const [f0, f1] = viewFracBox(), key = f0.join() + "|" + f1.join();
+    if (!elCache || elCache.key !== key) {
+      const el = WP.elements(D.grp, D.B, f0, f1);
+      el.centers.forEach((c) => { c.ci = D.clsIndex.has(c.cls) ? D.clsIndex.get(c.cls) : 0; });
+      elCache = { key, el, f0, f1 };
+    }
+    return elCache;
+  }
+  function drawOverlays(T) {
+    const B = D.B, ve = viewElements(), el = ve.el;
+    if (show.lattice) {
+      const [i0, j0] = ve.f0, [i1, j1] = ve.f1;
+      ctx.globalAlpha = 0.6;
+      ctx.strokeStyle = T.lat; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
+      for (let i = i0 - 1; i <= i1 + 1; i++) { const a = toS(WP.worldOf(B, [i, j0 - 1])), b = toS(WP.worldOf(B, [i, j1 + 1])); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+      for (let j = j0 - 1; j <= j1 + 1; j++) { const a = toS(WP.worldOf(B, [i0 - 1, j])), b = toS(WP.worldOf(B, [i1 + 1, j])); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+      for (let i = i0 - 1; i <= i1 + 1; i++) for (let j = j0 - 1; j <= j1 + 1; j++) {
+        const s = toS(WP.worldOf(B, [i, j]));
+        ctx.beginPath(); ctx.arc(s[0], s[1], 3.2, 0, 2 * PI); ctx.fillStyle = T.lat; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = T.stage; ctx.stroke();
+      }
+      const O = [0, 0], A1 = WP.worldOf(B, [1, 0]), A2 = WP.worldOf(B, [0, 1]);
+      ctx.beginPath(); [O, A1, [A1[0] + A2[0], A1[1] + A2[1]], A2].map(toS).forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath();
+      ctx.fillStyle = T.lat; ctx.globalAlpha = 0.14; ctx.fill(); ctx.globalAlpha = 1;
+      arrow(O, A1, T.lat, 2.6, false, T.stage); arrow(O, A2, T.lat, 2.6, false, T.stage);
+      labelAt(A1, "a₁", T.lat); labelAt(A2, "a₂", T.lat);
+    }
+    if (show.glides) for (const l of el.lines) if (!l.mirror) {
+      const dw = WP.worldOf(B, l.d), n = Math.hypot(...dw);
+      lineAcross(WP.worldOf(B, l.q), [dw[0] / n, dw[1] / n], T.glide, 2, [9, 6]);
+    }
+    if (show.mirrors) for (const l of el.lines) if (l.mirror) {
+      const dw = WP.worldOf(B, l.d), n = Math.hypot(...dw);
+      lineAcross(WP.worldOf(B, l.q), [dw[0] / n, dw[1] / n], T.mirror, 2.8);
+    }
+    if (show.centers) {
+      for (const c of el.centers) centerSymbol(WP.worldOf(B, c.c), c.n, T.cls[c.ci % 4], c.n === 2 ? 8.5 : 9.5, "#FFFFFF", c.n === 2 ? lensAngle(c) : 0);
+      for (const c of D.cls.centers) {
+        const s = toS(WP.worldOf(B, c.c));
+        ctx.font = "600 15px " + THEME.fontUi;
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.lineWidth = 4; ctx.strokeStyle = "#FFFFFF"; ctx.lineJoin = "round";
+        ctx.strokeText(c.letter, s[0] + 11, s[1] - 11);
+        ctx.fillStyle = T.cls[c.ci % 4]; ctx.fillText(c.letter, s[0] + 11, s[1] - 11);
+      }
+    }
+  }
+  // a 2-fold lens is drawn along a₁ (just for looks)
+  function lensAngle() { const a = WP.worldOf(D.B, [1, 0]); return -Math.atan2(a[1], a[0]) + PI / 2; }
+  function labelAt(p, txt, color, off) {
+    const s = toS(p);
+    ctx.font = "italic 600 17px " + THEME.fontMath;
+    ctx.fillStyle = color; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.lineWidth = 3.5; ctx.strokeStyle = THEME.stage; ctx.strokeText(txt, s[0] + 6, s[1] - 10); ctx.fillText(txt, s[0] + 6, s[1] - 10);
+  }
+  function flagPath(A, F, L) {
+    // a flag at F: a pole along a₂'s direction (straight up in world), and a pennant to its right
+    const h = 0.16 * L, w = 0.11 * L;
+    const P = (x, y) => toS(affAp(A, [F[0] + x, F[1] + y]));
+    return { pole: [P(0, 0), P(0, h)], pen: [P(0, h), P(w, h - 0.3 * w), P(0, h - 0.6 * w)] };
+  }
+  function drawFlag(A, color, dashed, width) {
+    const f = flagPath(A, D.flagW, D.flagSize / 0.16);
+    ctx.setLineDash(dashed ? [4, 3] : []);
+    ctx.beginPath(); ctx.moveTo(...f.pole[0]); ctx.lineTo(...f.pole[1]); ctx.strokeStyle = color; ctx.lineWidth = width || 2.6; ctx.stroke();
+    ctx.beginPath(); f.pen.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath();
+    if (dashed) { ctx.lineWidth = 1.6; ctx.stroke(); } else { ctx.fillStyle = color; ctx.fill(); }
+    ctx.setLineDash([]);
+    const s = f.pole[0];
+    ctx.beginPath(); ctx.arc(s[0], s[1], dashed ? 2.5 : 3.5, 0, 2 * PI); ctx.fillStyle = color; ctx.fill();
+  }
+  function drawMoveGeom(T) {
+    const el = cur ? cur.el : last;
+    if (!el) return;
+    const an = el.an, col = el.ghost ? T.muted : T.accent;
+    if (an.kind === "rot") {
+      const s = toS(an.c);
+      ctx.beginPath(); ctx.arc(s[0], s[1], 13, 0, 2 * PI); ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.setLineDash(el.ghost ? [4, 3] : []); ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(s[0], s[1], 3, 0, 2 * PI); ctx.fillStyle = col; ctx.fill();
+      // arc arrow showing the angle so far (counterclockwise on screen when ang > 0)
+      const p = cur ? progress(cur) : 1, a = an.ang * ease(p), r = 24;
+      if (Math.abs(a) > 0.02) {
+        ctx.beginPath(); ctx.arc(s[0], s[1], r, 0, -a, a > 0); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
+        const ex = s[0] + r * Math.cos(-a), ey = s[1] + r * Math.sin(-a), tx = Math.sin(-a) * (a > 0 ? 1 : -1), ty = -Math.cos(-a) * (a > 0 ? 1 : -1);
+        ctx.beginPath(); ctx.moveTo(ex + tx * 7, ey + ty * 7); ctx.lineTo(ex - ty * 4, ey + tx * 4); ctx.lineTo(ex + ty * 4, ey - tx * 4); ctx.closePath(); ctx.fillStyle = col; ctx.fill();
+      }
+    } else if (an.kind === "refl") {
+      lineAcross(an.q, an.u, col, 3.2, el.ghost ? [8, 6] : []);
+    } else if (an.kind === "glide") {
+      lineAcross(an.q, an.u, col, 3.2, [10, 6]);
+      // the glide vector, drawn along the axis from the foot of the flag
+      const F = D.flagW, t = (F[0] - an.q[0]) * an.u[0] + (F[1] - an.q[1]) * an.u[1];
+      const P = [an.q[0] + t * an.u[0], an.q[1] + t * an.u[1]];
+      arrow(P, [P[0] + an.v[0], P[1] + an.v[1]], col, 3);
+    } else if (an.kind === "trans") {
+      const G = affOfWorld(WP.toWorld(cur ? base : WP.comp(WP.inv(last.g), base), D.B));
+      const P = affAp(G, D.flagW);
+      arrow(P, [P[0] + an.vec[0], P[1] + an.vec[1]], col, 3, el.ghost);
+    }
+  }
+  function draw() {
+    if (!THEME) THEME = theme();
+    const T = THEME;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    if (!D) return;
+    // the tiling, then the tracing (moved by the symmetries), then the symmetry elements, which belong to the plane
+    drawTiles(AID, T, "fill");
+    const TA = tracingAff();
+    if (trace === "outline") drawTiles(TA, T, "outline");
+    else if (trace === "copy") drawTiles(TA, T, "copy");
+    setT(AID);
+    drawOverlays(T);
+    drawMoveGeom(T);
+    drawFlag(AID, T.muted, true, 1.6);
+    drawFlag(TA, T.trace, false);
+  }
+  function kick() { if (!raf) { lastTs = performance.now(); raf = requestAnimationFrame(frame); } }
+  let shownTransit = false;
+  function frame(ts) {
+    raf = 0;
+    const dt = clamp(ts - lastTs, 0, 80);
+    lastTs = ts;
+    let more = false;
+    if (cur && cur.playing) {
+      const dur = durationOf(cur.el);
+      cur.t = dur > 0 ? cur.t + cur.dir * dt / dur : cur.dir > 0 ? 1 : 0;
+      if (cur.el.ghost && cur.t >= 1) { cur.t = 1; finalize(); renderAll(); waiters.splice(0).forEach((f) => f()); pump(); }
+      else if (cur.dir > 0 && cur.t >= 1) { cur.t = 1; settle(); }
+      else if (cur.dir < 0 && cur.t <= 0) { cur.t = 0; settle(); }
+      else if (!shownTransit && !posState()) renderAll();
+      else if (shownTransit && posState()) renderAll();
+      else updateLive();
+      if (cur && cur.playing) more = true;
+    }
+    draw();
+    if (more && !raf) raf = requestAnimationFrame(frame);
+  }
+
+  // ---------- panels ----------
+  function symSvg(n, color) {
+    if (n === 2) return `<svg class="sym" viewBox="-1 -1 2 2" aria-hidden="true"><ellipse rx="0.5" ry="0.95" fill="${color}"/></svg>`;
+    const pts = [...Array(n)].map((_, j) => { const a = -PI / 2 + 2 * PI * j / n; return `${(0.95 * Math.cos(a)).toFixed(3)},${(0.95 * Math.sin(a)).toFixed(3)}`; }).join(" ");
+    return `<svg class="sym" viewBox="-1 -1 2 2" aria-hidden="true"><polygon points="${pts}" fill="${color}"/></svg>`;
+  }
+  function lineSvg(color, dashed) {
+    return `<svg class="sym" viewBox="0 0 10 10" aria-hidden="true"><line x1="1" y1="9" x2="9" y2="1" stroke="${color}" stroke-width="${dashed ? 1.6 : 2.2}" ${dashed ? 'stroke-dasharray="2.4 1.6"' : ""}/></svg>`;
+  }
+  function permutes(el) { return D.colors && !permIsId(WP.colorPerm(D.grp, D.colors, el.g)); }
+  const permIsId = (p) => p.every((x, i) => x === i);
+  function chip(el) {
+    const T = THEME || theme();
+    let icon = "";
+    if (el.kind === "rot" && el.center && !el.ghost) icon = symSvg(el.center.n, T.cls[el.center.ci % 4]);
+    else if (el.kind === "refl" && !el.ghost) icon = lineSvg(T.mirror, false);
+    else if (el.kind === "glide" && !el.ghost) icon = lineSvg(T.glide, true);
+    const cp = !el.ghost && permutes(el) ? `<span class="cperm" title="permutes the colors"></span>` : "";
+    const title = el.ghost ? `${el.name}: not a symmetry` : `${el.name}: (x, y) ↦ ${WP.mapStr(el.g)}`;
+    return `<button class="rot${el.ghost ? " ghost" : ""}" type="button" data-i="${el.idx}" title="${esc(title)}">${icon}<span>${esc(el.chip)}</span>${cp}</button>`;
+  }
+  function renderCatalog() {
+    $("drawings").innerHTML = DATA.map((d, i) => `<button class="dw" type="button" data-d="${i}" aria-current="${i === di}" title="${esc(d.group + (d.escher ? `: Escher used it in No. ${d.escher.no}` : ""))}"><span class="g">${esc(d.group)}</span><span class="n">${d.escher ? `No. ${d.escher.no}` : "&nbsp;"}</span></button>`).join("");
+    const fam = FAMILIES.find((f) => f.groups.includes(D.group));
+    $("dfam").textContent = (fam ? fam.name + ". " : "") + "Numbers: an Escher drawing with the same group.";
+    const blocks = ["Translations", "Rotations", "Reflections", "Glide reflections", "Not symmetries"];
+    $("moves").innerHTML = blocks.map((b) => {
+      const els = D.EL.filter((e) => e.block === b);
+      if (!els.length) return "";
+      return `<section class="block${b === "Not symmetries" ? " muted" : ""}"><div class="block-head"><h3>${b}</h3><span class="count">${els.length}</span></div><div class="chips">${els.map(chip).join("")}</div></section>`;
+    }).join("");
+    $("sum").innerHTML = summaryHtml();
+  }
+  function summaryHtml() {
+    return `Click a symmetry: the tracing moves and lands back on the tiling. The dashed buttons are not symmetries: they go out and come back. A dot on a button means that the move changes the colors.`;
+  }
+  // The index of the color-preserving subgroup: the number of different permutations of the colors, since that
+  // subgroup is the kernel of the action of the group on the colors.
+  function colorIndex(d) {
+    if (!d.colors) return 1;
+    const seen = new Set();
+    for (const o of d.grp.ops) for (let i = 0; i < d.colors.N; i++) for (let j = 0; j < d.colors.N; j++)
+      seen.add(WP.colorPerm(d.grp, d.colors, { m: o.m, t: [o.t[0] + i, o.t[1] + j] }).join(","));
+    return seen.size;
+  }
+  function colorsHtml(perm) {
+    if (!D.colors) return "";
+    if (permIsId(perm)) return `<span class="colors">keeps each color</span>`;
+    // cycle notation with swatches
+    const seen = new Set(), cyc = [];
+    for (let i = 0; i < perm.length; i++) {
+      if (seen.has(i) || perm[i] === i) { seen.add(i); continue; }
+      const c = []; let j = i;
+      while (!seen.has(j)) { seen.add(j); c.push(j); j = perm[j]; }
+      cyc.push(c);
+    }
+    const sw = (k) => `<span class="swatch" style="background:${D.colors.palette[k]}" title="${esc(D.colors.names[k])}"></span>`;
+    return `<span class="colors">${cyc.map((c) => "(" + c.map(sw).join(" ") + ")").join(" ")}</span>`;
+  }
+  function describe(an, g) {
+    // a short description of an isometry, in fractional coordinates
+    const B = D.B;
+    switch (an.kind) {
+      case "id": return { name: "The identity", fixl: "Fixes", fix: "every point" };
+      case "trans": return { name: `Translation by ${vecStr(WP.fracOf(B, an.vec))}`, fixl: "Fixes", fix: "no point" };
+      case "rot": return { name: `Rotation by ${an.ang < 0 ? MINUS : ""}${deg(an.ang)}°`, fixl: "Center", fix: WP.ptStr(WP.fracOf(B, an.c)) };
+      case "refl": case "glide": {
+        const qf = WP.fracOf(B, an.q), df = WP.primDir(WP.fracOf(B, an.u));
+        const eq = df ? lineEq({ q: qf, d: df }) : "";
+        if (an.kind === "refl") return { name: "Reflection", fixl: "Mirror", fix: eq, prep: " in " };
+        return { name: `Glide reflection by ${vecStr(WP.fracOf(B, an.v))}`, fixl: "Axis", fix: eq, prep: " along " };
+      }
+    }
+    return { name: "", fixl: "", fix: "" };
+  }
+  function renderMove() {
+    const el = cur ? cur.el : last;
+    if (!el) {
+      $("mv-eyebrow").textContent = "This move";
+      $("mv-name").textContent = "Choose a symmetry";
+      $("mv-class").innerHTML = "Each button applies one isometry of the plane to the tracing.";
+      $("mv-class").hidden = false;
+      $("mv-facts").hidden = true;
+      return;
+    }
+    $("mv-facts").hidden = false;
+    const ds = describe(el.an, el.g);
+    $("mv-eyebrow").textContent = el.kind === "reset" ? "Back home" : cur && cur.kind === "undo" ? "Undoing" : el.ghost ? "Not a symmetry" : "This move";
+    $("mv-name").textContent = el.kind === "reset" ? ds.name : el.name;
+    let cls = "";
+    if (el.ghost) cls = "It is an isometry of the plane, but the tracing does not land on the drawing, so it is not in the group.";
+    else if (el.kind === "reset") cls = `The composite of the moves so far is one isometry; its inverse takes the tracing home.`;
+    else if (el.note) cls = esc(el.note);
+    $("mv-class").innerHTML = cls;
+    $("mv-class").hidden = !cls;
+    $("mv-formula").textContent = `(x, y) ↦ ${WP.mapStr(el.g)}`;
+    $("mv-fixlabel").textContent = ds.fixl; $("mv-fix").textContent = ds.fix;
+    const showC = !!D.colors && !el.ghost;
+    $("mv-colors-row").hidden = !showC;
+    if (showC) $("mv-colors").innerHTML = colorsHtml(WP.colorPerm(D.grp, D.colors, el.g));
+  }
+  function renderPos() {
+    const st = posState();
+    shownTransit = !st;
+    const pill = $("pos-pill");
+    $("pos-body").classList.toggle("stale", !st);
+    if (!st) {
+      pill.className = "pill transit";
+      pill.textContent = cur && cur.el.ghost ? "Out of place: not a symmetry" : "Moving…";
+      return;
+    }
+    const g = st.g, an = WP.classify(g, D.B), ds = describe(an, g);
+    pill.className = "pill" + (WP.mdet(g.m) < 0 ? " rev" : "");
+    pill.textContent = an.kind === "id" ? "At home" : `${ds.name}${ds.fix && an.kind !== "trans" ? (an.kind === "rot" ? " about " : ds.prep) + ds.fix : ""}`;
+    $("pos-formula").textContent = WP.mapStr(g);
+    $("pos-colors-row").hidden = !D.colors;
+    if (D.colors) $("pos-colors").innerHTML = colorsHtml(WP.colorPerm(D.grp, D.colors, g));
+    const n = st.h.length;
+    $("pos-eyebrow").textContent = n === 0 ? "Where the tracing is now" : `Where the tracing is now (${n} move${n === 1 ? "" : "s"})`;
+  }
+  function renderControls() {
+    document.querySelectorAll("#moves .rot").forEach((b) => b.classList.toggle("is-move", !!(cur || last) && +b.dataset.i === (cur ? cur.el : last).idx));
+    document.querySelectorAll("[data-show]").forEach((b) => b.setAttribute("aria-pressed", String(!!show[b.dataset.show])));
+    document.querySelectorAll("[data-trace]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.trace === trace)));
+    document.querySelectorAll("[data-speed]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.speed === speed)));
+    $("btn-undo").disabled = !hist.length && !(cur && cur.dir > 0 && !cur.el.ghost && cur.kind !== "reset");
+    const home = !cur && WP.inGroup(base, { ops: [{ m: [1, 0, 0, 1], t: [0, 0] }] }) && WP.near(base.t[0], 0) && WP.near(base.t[1], 0);
+    $("btn-reset").disabled = home && !hist.length;
+    $("btn-tour").setAttribute("aria-pressed", String(touring));
+    $("tour-label").textContent = touring ? (tourInfo ? `Stop (${tourInfo.i + 1}/${tourInfo.n})` : "Stop") : "Play all";
+    $("play-label").textContent = cur && cur.playing ? "Pause" : cur && ((cur.dir > 0 && cur.t < 1) || (cur.dir < 0 && cur.t > 0)) ? "Resume" : "Play";
+    $("btn-play").disabled = !cur && !last;
+    $("scrub").disabled = !cur;
+    updateLive();
+  }
+  function updateLive() {
+    const sc = $("scrub");
+    if (cur) sc.value = String(Math.round(cur.t * 1000)); else sc.value = last ? "1000" : "0";
+    const el = cur ? cur.el : last;
+    let s = "";
+    if (el) {
+      const p = cur ? progress(cur) : 1, an = el.an;
+      if (an.kind === "rot") s = `${an.ang < 0 ? MINUS : ""}${Math.round(deg(an.ang) * ease(p))}°`;
+      else if (an.kind === "trans") s = `${Math.round(100 * ease(p))}% of the way`;
+      else if (an.kind === "refl") s = p < 0.5 ? "turning over" : p < 1 ? "turning over" : "turned over";
+      else if (an.kind === "glide") s = p <= GLIDE_A ? "reflect…" : p < 1 ? "…then slide" : "done";
+    }
+    $("mv-live").textContent = s;
+  }
+  function edgeText(d) {
+    const c = { trans: 0, glide: 0, rot: 0, half: 0, mirror: 0 };
+    for (const e of d.edges) {
+      if (e.type === "mirror") c.mirror++;
+      else if (e.type === "half-turn") c.half++;
+      else if (e.type === "trans") c.trans++;
+      else if (e.type === "glide") c.glide++;
+      else c.rot++;
+    }
+    const parts = [];
+    const pl = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    if (c.trans) parts.push(pl(c.trans, "pair of edges matched by a translation", "pairs of edges matched by translations"));
+    if (c.glide) parts.push(pl(c.glide, "pair matched by a glide reflection", "pairs matched by glide reflections"));
+    if (c.rot) parts.push(pl(c.rot, "pair matched by a rotation about their common corner", "pairs matched by rotations about their common corners"));
+    if (c.half) parts.push(pl(c.half, "S-shaped edge around a half-turn center", "S-shaped edges around half-turn centers"));
+    if (c.mirror) parts.push(pl(c.mirror, "straight edge on a mirror", "straight edges on mirrors"));
+    return parts.join("; ");
+  }
+  function renderDrawing() {
+    const d = D;
+    const n = d.grp.ops.length / (d.grp.center ? 2 : 1);
+    $("subtitle").textContent = "based on the periodic drawings of M. C. Escher";
+    $("dr-title").textContent = `A tiling with group ${d.group}`;
+    $("dr-meta").textContent = "";
+    $("dr-group").textContent = d.group;
+    $("dr-orb").textContent = `orbifold ${d.grp.orb}`;
+    $("dr-lat").innerHTML = `${esc(d.grp.lat)}; ${esc(d.grp.pg)} (order ${n})`;
+    $("dr-cg").innerHTML = `the translations, of index ${colorIndex(d)}`;
+    const esch = d.escher ? `Escher used ${d.group} in his No. ${d.escher.no} (${esc(d.escher.title)}, ${esc(d.escher.year)}): <a href="${esc(d.escher.url)}" target="_blank" rel="noopener">see it at mcescher.com</a>.`
+      : `None of the Escher drawings checked for this page has this group.`;
+    $("dr-detail").innerHTML = `<p><b>Based on Escher’s work.</b> Like his periodic drawings, this tiling is made from one tile whose edges are bent in matching pairs; the tile itself is new. ${esch}</p>`
+      + `<p>The tile is one fundamental domain, ${(1 / (n * (d.grp.center ? 2 : 1))) === 1 ? "a whole cell" : `1/${n * (d.grp.center ? 2 : 1)} of a cell`}. Its edges: ${edgeText(d)}. The color of a tile is its linear part λ(<i>g</i>), so tiles of the same color are translates of each other.</p>`;
+    $("credit").textContent = "Based on M. C. Escher’s periodic drawings (new tiling, not a copy)";
+    $("key").innerHTML = keyHtml();
+    $("src").innerHTML = sourcesHtml(d);
+  }
+  function keyHtml() {
+    const T = THEME || theme();
+    const parts = [];
+    const ords = [...new Set(D.cls.centers.map((c) => c.n))];
+    if (ords.length) parts.push(`Centers of order ${ords.join(", ")}: ${D.cls.centers.map((c) => `${symSvg(c.n, T.cls[c.ci % 4])}&nbsp;${c.letter}`).join(" ")}.`);
+    if (D.cls.mirrors.length) parts.push(`${lineSvg(T.mirror)} mirror lines.`);
+    if (D.cls.glides.length) parts.push(`${lineSvg(T.glide, true)} glide axes (show them with <i>Glides</i>).`);
+    parts.push(`Colors: ${D.colors.palette.map((c, i) => `<span class="swatch" style="background:${c}" title="${esc(D.colors.names[i])}"></span>`).join(" ")} (one for each element of the point group).`);
+    parts.push(`Coordinates (<i>x</i>, <i>y</i>) are with respect to <i>a</i>₁ and <i>a</i>₂, from the origin at the corner of the shaded cell.`);
+    return parts.join(" ");
+  }
+  function sourcesHtml(d) {
+    const s = [];
+    s.push(`<p><b>Based on M. C. Escher’s work.</b> ${SOURCES.based}</p>`);
+    s.push(`<p><b>These tilings.</b> ${SOURCES.method}</p>`);
+    s.push(`<p><b>Escher.</b> ${SOURCES.escher}</p>`);
+    s.push(`<p><b>Further reading.</b> ${SOURCES.reading}</p>`);
+    return s.join("");
+  }
+  function renderAll() {
+    if (!D) return;
+    renderMove();
+    renderPos();
+    renderControls();
+  }
+
+  let hintGone = false;
+  function hideHint() { if (!hintGone) { hintGone = true; $("hint").classList.add("gone"); } }
+  function toggleFull() {
+    try {
+      if (document.fullscreenElement) { document.exitFullscreen(); return; }
+      const req = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+      if (req && req.catch) req.catch(() => {});
+    } catch (err) { /* full screen unavailable */ }
+  }
+
+  function wire() {
+    $("drawings").addEventListener("click", (e) => { const b = e.target.closest(".dw"); if (b) select(+b.dataset.d); });
+    $("moves").addEventListener("click", (e) => { const b = e.target.closest(".rot"); if (b) request(D.EL[+b.dataset.i]); });
+    $("btn-prev").addEventListener("click", () => select(di - 1));
+    $("btn-next").addEventListener("click", () => select(di + 1));
+    $("btn-tour").addEventListener("click", tour);
+    $("btn-full").addEventListener("click", toggleFull);
+    $("btn-play").addEventListener("click", playPause);
+    $("btn-undo").addEventListener("click", undo);
+    $("btn-reset").addEventListener("click", reset);
+    $("zoom-in").addEventListener("click", () => zoomBy(1.25));
+    $("zoom-out").addEventListener("click", () => zoomBy(1 / 1.25));
+    document.querySelectorAll("[data-show]").forEach((b) => b.addEventListener("click", () => { show[b.dataset.show] = !show[b.dataset.show]; store.set("wpt.show", JSON.stringify(show)); renderControls(); kick(); }));
+    document.querySelectorAll("[data-trace]").forEach((b) => b.addEventListener("click", () => { trace = b.dataset.trace; store.set("wpt.trace", trace); renderControls(); kick(); }));
+    document.querySelectorAll("[data-speed]").forEach((b) => b.addEventListener("click", () => { speed = b.dataset.speed; store.set("wpt.speed", speed); renderControls(); }));
+    const sc = $("scrub");
+    sc.addEventListener("input", () => {
+      if (!cur) return;
+      stopTour();
+      cur.playing = false;
+      cur.t = +sc.value / 1000;
+      renderAll(); kick();
+    });
+    let drag = null;
+    cv.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y }; cv.setPointerCapture(e.pointerId); cv.classList.add("dragging"); });
+    cv.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      view.x = drag.vx - (e.clientX - drag.x) / scale; view.y = drag.vy + (e.clientY - drag.y) / scale;
+      hideHint(); kick();
+    });
+    const endDrag = () => { drag = null; cv.classList.remove("dragging"); };
+    cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
+    cv.addEventListener("wheel", (e) => { e.preventDefault(); const r = cv.getBoundingClientRect(); zoomBy(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+    cv.addEventListener("dblclick", () => resetView());
+    window.addEventListener("keydown", (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const tg = e.target;
+      if (tg && (tg.tagName === "INPUT" && tg.type !== "range")) return;
+      const k = e.key;
+      if (k === " ") { e.preventDefault(); playPause(); }
+      else if (k === "ArrowRight") { e.preventDefault(); select(di + 1); }
+      else if (k === "ArrowLeft") { e.preventDefault(); select(di - 1); }
+      else if (k === "z" || k === "Z") undo();
+      else if (k === "r" || k === "R") reset();
+      else if (k === "a" || k === "A") tour();
+      else if (k === "f" || k === "F") toggleFull();
+      else if (k === "l" || k === "L") { show.lattice = !show.lattice; renderControls(); kick(); }
+      else if (k === "c" || k === "C") { show.centers = !show.centers; renderControls(); kick(); }
+      else if (k === "m" || k === "M") { show.mirrors = !show.mirrors; renderControls(); kick(); }
+      else if (k === "g" || k === "G") { show.glides = !show.glides; renderControls(); kick(); }
+      else if (k === "t" || k === "T") { trace = trace === "outline" ? "copy" : trace === "copy" ? "off" : "outline"; store.set("wpt.trace", trace); renderControls(); kick(); }
+      else if (k === "+" || k === "=") zoomBy(1.25);
+      else if (k === "-" || k === "_") zoomBy(1 / 1.25);
+      else if (k === "Escape") { stopTour(); queue.length = 0; if (cur && cur.playing) { cur.playing = false; renderAll(); } }
+      else if (/^[1-9]$/.test(k)) { const el = D.EL[+k - 1]; if (el) request(el); }
+    });
+    window.addEventListener("hashchange", () => { const i = DATA.findIndex((d) => "#" + d.id === location.hash); if (i >= 0 && i !== di) select(i, true); });
+    new ResizeObserver(() => resize()).observe(cv);
+    const mq = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (mq && mq.addEventListener) mq.addEventListener("change", (e) => { reduced = e.matches; });
+    const dq = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
+    if (dq && dq.addEventListener) dq.addEventListener("change", () => { THEME = theme(); renderCatalog(); renderDrawing(); kick(); });
+    $("keys").innerHTML = ["<kbd>←</kbd> <kbd>→</kbd> drawings", "<kbd>1</kbd>–<kbd>9</kbd> moves", "<kbd>Space</kbd> play/pause", "<kbd>Z</kbd> undo", "<kbd>R</kbd> reset", "<kbd>A</kbd> play all", "<kbd>L</kbd> <kbd>C</kbd> <kbd>M</kbd> <kbd>G</kbd> show", "<kbd>T</kbd> tracing", "<kbd>F</kbd> full screen"].map((s) => `<span>${s}</span>`).join("");
+  }
+
+  function start() {
+    const sp = store.get("wpt.speed"); if (sp && SPEEDS[sp]) speed = sp;
+    const tr = store.get("wpt.trace"); if (tr === "outline" || tr === "copy" || tr === "off") trace = tr;
+    try { Object.assign(show, JSON.parse(store.get("wpt.show") || "{}")); } catch (err) { /* ignore */ }
+    wire();
+    const fromHash = DATA.findIndex((d) => "#" + d.id === location.hash);
+    const saved = DATA.findIndex((d) => d.id === store.get("wpt.tiling"));
+    THEME = theme();
+    select(fromHash >= 0 ? fromHash : saved >= 0 ? saved : 0, true);
+    resize();
+  }
+
+  window.__wp = {
+    DATA, WP,
+    select(i) { select(i); },
+    request(i) { request(D.EL[i]); },
+    undo, reset, tour, playPause,
+    setTimeScale(k) { timeScale = k; },
+    tick(ms) { if (raf) { cancelAnimationFrame(raf); raf = 0; } frame(lastTs + ms); },
+    project(p) { return toS(p); },
+    tracingAff, screenAff,
+    drawing() { return D; },
+    forTiles(A, f) { forTiles(A, f); },
+    setShow(k, v) { show[k] = v; renderControls(); kick(); },
+    setTrace(t) { trace = t; renderControls(); kick(); },
+    state() {
+      const st = posState();
+      return { di, id: D.id, settled: !(cur && cur.playing) && !queue.length && !touring, inTransit: !st, g: st ? st.g : null, hist: st ? st.h.slice() : null,
+        cur: cur && { idx: cur.el.idx, t: cur.t, p: progress(cur), dir: cur.dir, ghost: !!cur.el.ghost, kind: cur.kind }, touring, tourInfo: tourInfo && Object.assign({}, tourInfo), view: Object.assign({}, view), scale, reduced };
+    },
+  };
+  start();
+})();
+</script>
+
+</body>
+</html>
