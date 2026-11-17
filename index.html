@@ -258,9 +258,9 @@ details.card summary { cursor: pointer; font: 600 0.75rem var(--font-ui); letter
           <button class="tog" type="button" id="show-glides" data-show="glides" aria-pressed="false" title="Axes of glide reflections that are not mirror lines (G)">Glides</button>
         </div>
         <div class="seg small" role="group" aria-label="Tracing">
-          <button type="button" data-trace="outline" aria-pressed="true" title="The tracing is a copy of the outlines of the tiles (T)">Outline</button>
-          <button type="button" data-trace="copy" aria-pressed="false" title="The tracing is a transparent copy of the colored tiles (T)">Copy</button>
-          <button type="button" data-trace="off" aria-pressed="false" title="Hide the tracing: only its flag and its edge move (T)">Off</button>
+          <button type="button" data-trace="cutout" aria-pressed="true" title="The symmetry moves a colored cut-out of the tiling over a faded copy (T)">Cut-out</button>
+          <button type="button" data-trace="outline" aria-pressed="false" title="The symmetry moves a tracing of all the outlines (T)">Outline</button>
+          <button type="button" data-trace="off" aria-pressed="false" title="Hide the tracing: only its flag moves (T)">Off</button>
         </div>
         <div class="seg small" role="group" aria-label="Speed">
           <button type="button" data-speed="slow" aria-pressed="false">Slow</button>
@@ -730,6 +730,18 @@ if (typeof module !== "undefined") module.exports = WP;
     d.flagW = [dc.pole[0] - 0.35 * dc.r * dc.u[0], dc.pole[1] - 0.35 * dc.r * dc.u[1]];
     d.flagW = [d.flagW[0] - 0.25 * dc.r * -dc.u[1], d.flagW[1] - 0.25 * dc.r * dc.u[0]];
     d.flagSize = 0.9 * dc.r;
+    // the cut-out: the tiles whose centers are within 1.8·√(tile area) of the home tile's center (about ten tiles)
+    {
+      const R = 1.8 * Math.sqrt(d.area), Pc = d.tileC;
+      d.patch = [];
+      d.grp.ops.forEach((o, k) => {
+        for (let i = -5; i <= 5; i++) for (let j = -5; j <= 5; j++) {
+          const w = WP.toWorld({ m: o.m, t: [o.t[0] + i, o.t[1] + j] }, d.B);
+          const c = [w.A[0] * Pc[0] + w.A[1] * Pc[1] + w.b[0], w.A[2] * Pc[0] + w.A[3] * Pc[1] + w.b[1]];
+          if (Math.hypot(c[0] - Pc[0], c[1] - Pc[1]) <= R) d.patch.push({ k, G: affOfWorld(w) });
+        }
+      });
+    }
     d.EL = buildMoves(d);
     d.prepared = true;
     return d;
@@ -809,7 +821,7 @@ if (typeof module !== "undefined") module.exports = WP;
   let last = null;              // the last move shown (for the readout and the drawing of its geometry)
   const queue = [];
   const show = { lattice: true, centers: true, mirrors: true, glides: false };
-  let trace = "outline", speed = "normal", timeScale = 1;
+  let trace = "cutout", speed = "normal", timeScale = 1;
   const SPEEDS = { slow: 1.8, normal: 1, fast: 0.55 };
   const view = { x: 0, y: 0, z: 1 };
   let touring = false, tourTok = 0, tourInfo = null;
@@ -969,6 +981,23 @@ if (typeof module !== "undefined") module.exports = WP;
     const det = A[0] * A[3] - A[1] * A[2];
     const a = A[3] / det, b = -A[1] / det, c = -A[2] / det, d = A[0] / det;
     return [a, b, c, d, -(a * A[4] + c * A[5]), -(b * A[4] + d * A[5])];
+  }
+  // The cut-out: the patch of tiles, moved by A, lifted off the page (shadow and a border along its outer edge).
+  function drawPatch(A, T) {
+    const SA = screenAff(), ink = "#1C1919", M = affMul(SA, A);
+    // shadow, offset a few pixels on the screen
+    for (const t of D.patch) { setT(affMul([1, 0, 0, 1, 3, 5], affMul(M, t.G))); ctx.fillStyle = "rgba(0, 0, 0, 0.22)"; ctx.fill(D.tilePath); }
+    // a thick border on every tile; the fills below cover it except along the outer edge of the patch
+    for (const t of D.patch) { setT(affMul(M, t.G)); ctx.lineJoin = "round"; ctx.strokeStyle = T.trace; ctx.lineWidth = 7 / scale; ctx.stroke(D.tilePath); }
+    for (const t of D.patch) {
+      setT(affMul(M, t.G));
+      ctx.fillStyle = D.colors.palette[D.colors.table[t.k][0][0]]; ctx.fill(D.tilePath);
+      ctx.fillStyle = "#FFFFFF"; ctx.fill(D.eyePath);
+      ctx.fillStyle = ink; ctx.fill(D.pupilPath); ctx.fill(D.spotPath);
+      ctx.lineWidth = 1.3 / scale; ctx.strokeStyle = ink; ctx.stroke(D.eyePath);
+      ctx.lineWidth = 2 / scale; ctx.lineCap = "round"; ctx.stroke(D.gillPath);
+      ctx.lineWidth = 1.7 / scale; ctx.stroke(D.tilePath);
+    }
   }
   function drawTiles(A, T, mode) {
     const SA = screenAff(), ink = "#1C1919";
@@ -1197,8 +1226,11 @@ if (typeof module !== "undefined") module.exports = WP;
     // the tiling, then the tracing (moved by the symmetries), then the symmetry elements, which belong to the plane
     drawTiles(AID, T, "fill");
     const TA = tracingAff();
-    if (trace === "outline") drawTiles(TA, T, "outline");
-    else if (trace === "copy") drawTiles(TA, T, "copy");
+    if (trace === "cutout") {
+      // fade the tiling that stays put, then lay the moving cut-out on it
+      setT(AID); ctx.globalAlpha = 0.6; ctx.fillStyle = T.stage; ctx.fillRect(0, 0, W_, H_); ctx.globalAlpha = 1;
+      drawPatch(TA, T);
+    } else if (trace === "outline") drawTiles(TA, T, "outline");
     setT(AID);
     drawOverlays(T);
     drawMoveGeom(T);
@@ -1261,7 +1293,7 @@ if (typeof module !== "undefined") module.exports = WP;
     $("sum").innerHTML = summaryHtml();
   }
   function summaryHtml() {
-    return `Click a symmetry: the tracing moves and lands back on the tiling. The dashed buttons are not symmetries: they go out and come back. A dot on a button means that the move changes the colors.`;
+    return `Click a symmetry: the bright cut-out of the tiling moves and lands back on the faded tiling underneath, where its colors show which tiles went where. The dashed buttons are not symmetries: they go out and come back. A dot on a button means that the move changes the colors.`;
   }
   // The index of the color-preserving subgroup: the number of different permutations of the colors, since that
   // subgroup is the kernel of the action of the group on the colors.
@@ -1461,7 +1493,7 @@ if (typeof module !== "undefined") module.exports = WP;
     $("zoom-in").addEventListener("click", () => zoomBy(1.25));
     $("zoom-out").addEventListener("click", () => zoomBy(1 / 1.25));
     document.querySelectorAll("[data-show]").forEach((b) => b.addEventListener("click", () => { show[b.dataset.show] = !show[b.dataset.show]; store.set("wpt.show", JSON.stringify(show)); renderControls(); kick(); }));
-    document.querySelectorAll("[data-trace]").forEach((b) => b.addEventListener("click", () => { trace = b.dataset.trace; store.set("wpt.trace", trace); renderControls(); kick(); }));
+    document.querySelectorAll("[data-trace]").forEach((b) => b.addEventListener("click", () => { trace = b.dataset.trace; store.set("wpt.trace2", trace); renderControls(); kick(); }));
     document.querySelectorAll("[data-speed]").forEach((b) => b.addEventListener("click", () => { speed = b.dataset.speed; store.set("wpt.speed", speed); renderControls(); }));
     const sc = $("scrub");
     sc.addEventListener("input", () => {
@@ -1498,7 +1530,7 @@ if (typeof module !== "undefined") module.exports = WP;
       else if (k === "c" || k === "C") { show.centers = !show.centers; renderControls(); kick(); }
       else if (k === "m" || k === "M") { show.mirrors = !show.mirrors; renderControls(); kick(); }
       else if (k === "g" || k === "G") { show.glides = !show.glides; renderControls(); kick(); }
-      else if (k === "t" || k === "T") { trace = trace === "outline" ? "copy" : trace === "copy" ? "off" : "outline"; store.set("wpt.trace", trace); renderControls(); kick(); }
+      else if (k === "t" || k === "T") { trace = trace === "cutout" ? "outline" : trace === "outline" ? "off" : "cutout"; store.set("wpt.trace2", trace); renderControls(); kick(); }
       else if (k === "+" || k === "=") zoomBy(1.25);
       else if (k === "-" || k === "_") zoomBy(1 / 1.25);
       else if (k === "Escape") { stopTour(); queue.length = 0; if (cur && cur.playing) { cur.playing = false; renderAll(); } }
@@ -1515,7 +1547,7 @@ if (typeof module !== "undefined") module.exports = WP;
 
   function start() {
     const sp = store.get("wpt.speed"); if (sp && SPEEDS[sp]) speed = sp;
-    const tr = store.get("wpt.trace"); if (tr === "outline" || tr === "copy" || tr === "off") trace = tr;
+    const tr = store.get("wpt.trace2"); if (tr === "cutout" || tr === "outline" || tr === "off") trace = tr;
     try { Object.assign(show, JSON.parse(store.get("wpt.show") || "{}")); } catch (err) { /* ignore */ }
     wire();
     const fromHash = DATA.findIndex((d) => "#" + d.id === location.hash);
